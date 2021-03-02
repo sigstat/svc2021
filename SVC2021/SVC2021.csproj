@@ -9,4 +9,20 @@
     <PackageReference Include="SigStat" Version="0.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\Training\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\Validation\Task1_comparisons.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Validation\Task2_comparisons.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Validation\Task3_comparisons.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

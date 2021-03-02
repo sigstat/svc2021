@@ -8,22 +8,47 @@ using System.IO.Compression;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Reflection;
+using SigStat.Common;
+using SigStat.Common.Loaders;
+using SVC2021.Entities;
+using System.Globalization;
 
-namespace SigStat.Common.Loaders
+namespace SVC2021
 {
     public enum DB
     {
         Mcyt,
-        Db1,
-        Db2
+        eBioSignDS1,
+        eBioSignDS2,
+        BiosecurID,
+        BiosecureDS2
     }
+
+    public enum InputDevice
+    {
+        Finger,
+        Stylus
+    }
+
+    public enum Split
+    {
+        Development,
+        Evaluation
+    }
+
+
 
     /// <summary>
     /// Set of features containing raw data loaded from SVC2004-format database.
     /// </summary>
     public static class Svc2021
     {
+        public static readonly FeatureDescriptor<string> FileName = FeatureDescriptor.Get<string>("Svc2021.FileName");
+
         public static readonly FeatureDescriptor<DB> DB = FeatureDescriptor.Get<DB>("Svc2021.DB");
+        public static readonly FeatureDescriptor<Split> Split = FeatureDescriptor.Get<Split>("Svc2021.Split");
+        public static readonly FeatureDescriptor<InputDevice> InputDevice = FeatureDescriptor.Get<InputDevice>("Svc2021.InputDevice");
+
 
         /// <summary>
         /// X cooridnates from the online signature imported from the SVC2021 database
@@ -36,12 +61,12 @@ namespace SigStat.Common.Loaders
         /// <summary>
         /// T values from the online signature imported from the SVC2021 database
         /// </summary>
-        public static readonly FeatureDescriptor<List<int>> T = FeatureDescriptor.Get<List<int>>("Svc2021.T");
+        public static readonly FeatureDescriptor<List<long>> T = FeatureDescriptor.Get<List<long>>("Svc2021.T");
 
         /// <summary>
         /// Pressure values from the online signature imported from the SVC2021 database
         /// </summary>
-        public static readonly FeatureDescriptor<List<int>> Pressure = FeatureDescriptor.Get<List<int>>("Svc2021.Pressure");
+        public static readonly FeatureDescriptor<List<double>> Pressure = FeatureDescriptor.Get<List<double>>("Svc2021.Pressure");
 
         /// <summary>
         /// A list of all Svc2004 feature descriptors
@@ -61,6 +86,7 @@ namespace SigStat.Common.Loaders
     [JsonObject(MemberSerialization.OptOut)]
     public class Svc2021Loader : DataSetLoader
     {
+        private static readonly IFormatProvider numberFormat = new CultureInfo("EN-US").NumberFormat;
         /// <summary>
         /// Sampling Frequency of the SVC database
         /// </summary>
@@ -71,18 +97,76 @@ namespace SigStat.Common.Loaders
             public string File { get; set; }
             public string SignerID { get; set; }
             public string SignatureID { get; set; }
+            public DB DB { get; set; }
+            public Split Split { get; set; }
+            public InputDevice InputDevice { get; set; }
+            public Origin Origin { get; set; }
 
             public SignatureFile(string file)
             {
                 File = file;
-                string name = file.Split('/').Last();//handle if file is in zip directory
-                var parts = Path.GetFileNameWithoutExtension(name).Replace("U", "").Split('S');
-                if (parts.Length != 2)
+                var pathParts = file.Split('/');
+               
+                this.Split = Enum.Parse<Split>(pathParts[^3], true);
+                this.InputDevice = Enum.Parse<InputDevice>(pathParts[^2], true);
+
+                var parts = pathParts[^1].Split("_");
+                if (parts[1] == "g")
+                    this.Origin = Origin.Genuine;
+                else if (parts[1] == "s")
+                    this.Origin = Origin.Forged;
+                else
+                    throw new NotSupportedException($"Unsupported origin: {parts[1]}");
+
+                this.SignerID = parts[0].Replace("u", "");
+                this.SignatureID = string.Join('\\', pathParts[^3..]); //Path.GetFileNameWithoutExtension(pathParts[^1]);
+
+                this.DB = GetDatabase(Split, InputDevice, SignerID, file);
+                //SignerID = parts[0].PadLeft(2, '0');
+            }
+
+            private static DB GetDatabase(Split split, InputDevice inputDevice, string signerId, string file)
+            {
+                switch (split)
                 {
-                    throw new InvalidOperationException("Invalid file format. All signature files should be in 'U__S__.txt' format");
+                    case Split.Development:
+                        switch (inputDevice)
+                        {
+                            case InputDevice.Finger:
+                                if (signerId.Between("1009", "1038")) return DB.eBioSignDS1;
+                                else if (signerId.Between("1039", "1084")) return DB.eBioSignDS2;
+                                else throw new NotSupportedException($"Undefined DB for file: {file}");
+                            case InputDevice.Stylus:
+                                if (signerId.Between("0001", "0230")) return DB.Mcyt;
+                                else if (signerId.Between("0231", "0498")) return DB.BiosecurID;
+                                else if (signerId.Between("1009", "1038")) return DB.eBioSignDS1;
+                                else if (signerId.Between("1039", "1084")) return DB.eBioSignDS2;
+                                else throw new NotSupportedException($"Undefined DB for file: {file}");
+                            default:
+                                throw new NotSupportedException($"Undefined InputDevice for file: {file}");
+
+                        }
+                    case Split.Evaluation:
+                        switch (inputDevice)
+                        {
+                            case InputDevice.Finger:
+                                if (signerId.Between("0373", "0407")) return DB.eBioSignDS1;
+                                else if (signerId.Between("0408", "0442")) return DB.eBioSignDS2;
+                                else throw new NotSupportedException($"Undefined DB for file: {file}");
+                            case InputDevice.Stylus:
+                                if (signerId.Between("0001", "0100")) return DB.Mcyt;
+                                else if (signerId.Between("0101", "0232")) return DB.BiosecurID;
+                                else if (signerId.Between("0233", "0372")) return DB.BiosecureDS2;
+                                else if (signerId.Between("0373", "0407")) return DB.eBioSignDS1;
+                                else if (signerId.Between("0408", "0442")) return DB.eBioSignDS2;
+                                else throw new NotSupportedException($"Undefined DB for file: {file}");
+                            default:
+                                throw new NotSupportedException($"Undefined InputDevice for file: {file}");
+
+                        }
+                    default:
+                        throw new NotSupportedException($"Undefined Split for file: {file}");
                 }
-                SignerID = parts[0].PadLeft(2, '0');
-                SignatureID = parts[1].PadLeft(2, '0');
             }
         }
 
@@ -147,7 +231,7 @@ namespace SigStat.Common.Loaders
             using (ZipArchive zip = ZipFile.OpenRead(DatabasePath))
             {
                 //cut names if the files are in directories
-                var signatureGroups = zip.Entries.Where(f => f.Name.EndsWith(".TXT")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
+                var signatureGroups = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
                 this.LogTrace(signatureGroups.Count().ToString() + " signers found in database");
                 foreach (var group in signatureGroups)
                 {
@@ -159,16 +243,20 @@ namespace SigStat.Common.Loaders
                     }
                     foreach (var signatureFile in group)
                     {
-                        Signature signature = new Signature
+                        Svc2021Signature signature = new Svc2021Signature
                         {
                             Signer = signer,
-                            ID = signatureFile.SignatureID
+                            ID = signatureFile.SignatureID,
+                            DB = signatureFile.DB,
+                            Split = signatureFile.Split,
+                            FileName = signatureFile.File,
+                            InputDevice = signatureFile.InputDevice,
+                            Origin = signatureFile.Origin
                         };
                         using (Stream s = zip.GetEntry(signatureFile.File).Open())
                         {
                             LoadSignature(signature, s, StandardFeatures);
                         }
-                        signature.Origin = int.Parse(signature.ID) < 21 ? Origin.Genuine : Origin.Forged;
                         signer.Signatures.Add(signature);
 
 
@@ -206,20 +294,48 @@ namespace SigStat.Common.Loaders
             }
         }
 
-        private static void ParseSignature(Signature signature, string[] linesArray, bool standardFeatures)
+        struct Line
         {
-            var lines = linesArray
-                .Skip(1)
-                .Where(l => l != "")
-                .Select(l => l.Split(' ').Select(s => int.Parse(s)).ToArray())
-                .ToList();
+            public int X;
+            public int Y;
+            public long T;
+            public double Pressure;
+        }
+        private static void ParseSignature(Signature sig, string[] linesArray, bool standardFeatures)
+        {
+            var signature = (Svc2021Signature)sig;
 
-            //HACK: same timestamp for measurements does not make sense
+            // Set pressure column based on database
+            int pressureColumn = signature.DB switch
+            {
+                DB.Mcyt => 5,
+                DB.BiosecurID => 6,
+                DB.BiosecureDS2 => 6,
+                DB.eBioSignDS1 => 3,
+                DB.eBioSignDS2 => 3,
+                _ => throw new NotSupportedException($"Unsupported DB: {signature.DB}")
+            };
+
+            List<Line> lines;
+            try
+            {
+                lines = linesArray
+                    .Skip(1)
+                    .Where(l => l != "")
+                    .Select(l => ParseLine(l,pressureColumn)).ToArray()
+                    .ToList();
+            }
+            catch(Exception exc)
+            {
+                throw new Exception("Error parsing signature: " + sig.ID, exc);
+            }
+
+            //HACK: same timestamp for measurements do not make sense
             // therefore, we remove the second entry
             // a better solution would be to change the timestamps based on their environments
             for (int i = 0; i < lines.Count - 1; i++)
             {
-                if (lines[i][2] == lines[i + 1][2])
+                if (lines[i].T == lines[i + 1].T)
                 {
                     lines.RemoveAt(i + 1);
                     i--;
@@ -227,21 +343,26 @@ namespace SigStat.Common.Loaders
             }
 
             // Remove noise (points with 0 pressure) from the beginning of the signature
-            while (lines.Count > 0 && lines[0][6] == 0)
+            while (lines.Count > 0 && lines[0].Pressure == 0)
             {
                 lines.RemoveAt(0);
             }
             // Remove noise (points with 0 pressure) from the end of the signature
-            while (lines.Count > 0 && lines[lines.Count - 1][6] == 0)
+            while (lines.Count > 0 && lines[lines.Count - 1].Pressure == 0)
             {
                 lines.RemoveAt(lines.Count - 1);
             }
 
+
             // Task1, Task2
-            signature.SetFeature(Svc2021.X, lines.Select(l => l[0]).ToList());
-            signature.SetFeature(Svc2021.Y, lines.Select(l => l[1]).ToList());
-            signature.SetFeature(Svc2021.T, lines.Select(l => l[2]).ToList());
-            signature.SetFeature(Svc2021.Button, lines.Select(l => l[3]).ToList());
+            signature.SetFeature(Svc2021.X, lines.Select(l => l.X).ToList());
+            signature.SetFeature(Svc2021.Y, lines.Select(l => l.Y).ToList());
+            signature.SetFeature(Svc2021.T, lines.Select(l => l.T).ToList());
+            signature.SetFeature(Svc2021.Pressure, lines.Select(l => l.Pressure).ToList());
+
+
+
+            //signature.SetFeature(Svc2021.Button, lines.Select(l => l[3]).ToList());
 
             // There are some anomalies in the database which have to be eliminated by standard features
             var standardLines = lines.ToList();
@@ -250,73 +371,69 @@ namespace SigStat.Common.Loaders
                 // There are no upstrokes in the database, the starting points of downstrokes are marked by button=0 values 
                 // Tere are some anomalies in the database: button values between 2-5 and some upstrokes were not deleted               // Button is 2 or 4 if the given point's pressure is 0
                 // Button is 1, 3, 5 if the given point is in a downstroke
-                var button = signature.GetFeature(Svc2021.Button).ToArray();
-                var pointType = new double[button.Length];
-                for (int i = 0; i < button.Length; i++)
-                {
-                    if (button[i] == 0)
-                        pointType[i] = 1;
-                    else if (i == button.Length - 1 || (button[i] % 2 == 1 && button[i + 1] % 2 == 0))
-                        pointType[i] = 2;
-                    else if (button[i] == 2 || button[i] == 4)
-                        pointType[i] = 0;
-                    else if (button[i] % 2 == 1 && button[i - 1] % 2 == 0 && button[i - 1] != 0)
-                        pointType[i] = 1;
-                    else
-                        pointType[i] = 0;
+                //var button = signature.GetFeature(Svc2021.Button).ToArray();
+                //var pointType = new double[button.Length];
+                //for (int i = 0; i < button.Length; i++)
+                //{
+                //    if (button[i] == 0)
+                //        pointType[i] = 1;
+                //    else if (i == button.Length - 1 || (button[i] % 2 == 1 && button[i + 1] % 2 == 0))
+                //        pointType[i] = 2;
+                //    else if (button[i] == 2 || button[i] == 4)
+                //        pointType[i] = 0;
+                //    else if (button[i] % 2 == 1 && button[i - 1] % 2 == 0 && button[i - 1] != 0)
+                //        pointType[i] = 1;
+                //    else
+                //        pointType[i] = 0;
 
-                }
+                //}
 
 
                 // Because of the anomalies we have to remove some zero pressure points
-                standardLines.Reverse();
-                var standartPointType = pointType.ToList();
-                standartPointType.Reverse();
-                for (int i = standardLines.Count - 1; i >= 0; i--)
-                {
-                    if (standardLines[i][3] == 2 || standardLines[i][3] == 4)
-                    {
-                        standardLines.RemoveAt(i);
-                        standartPointType.RemoveAt(i); // we have to remove generated point type values of zero pressure points as well
-                    }
-                }
-                standardLines.Reverse();
-                standartPointType.Reverse();
+                //standardLines.Reverse();
+                //var standartPointType = pointType.ToList();
+                //standartPointType.Reverse();
+                //for (int i = standardLines.Count - 1; i >= 0; i--)
+                //{
+                //    if (standardLines[i][3] == 2 || standardLines[i][3] == 4)
+                //    {
+                //        standardLines.RemoveAt(i);
+                //        standartPointType.RemoveAt(i); // we have to remove generated point type values of zero pressure points as well
+                //    }
+                //}
+                //standardLines.Reverse();
+                //standartPointType.Reverse();
 
 
-                signature.SetFeature(Features.X, standardLines.Select(l => (double)l[0]).ToList());
-                signature.SetFeature(Features.Y, standardLines.Select(l => (double)l[1]).ToList());
-                signature.SetFeature(Features.T, standardLines.Select(l => (double)l[2]).ToList());
-                signature.SetFeature(Features.PenDown, standardLines.Select(l => l[3] != 0).ToList());
-                signature.SetFeature(Features.PointType, standartPointType);
+                signature.SetFeature(Features.X, standardLines.Select(l => (double)l.X).ToList());
+                signature.SetFeature(Features.Y, standardLines.Select(l => (double)l.Y).ToList());
+                signature.SetFeature(Features.T, standardLines.Select(l => (double)l.T).ToList());
+                signature.SetFeature(Features.T, standardLines.Select(l => l.Pressure).ToList());
+
+                //signature.SetFeature(Features.PenDown, standardLines.Select(l => l[3] != 0).ToList());
+                //signature.SetFeature(Features.PointType, standartPointType);
 
 
-                SignatureHelper.CalculateStandardStatistics(signature);
-
-
-            }
-
-            if (lines[0].Length == 7) // Task2
-            {
-                List<int> azimuth = lines.Select(l => l[4]).ToList();
-                List<int> altitude = lines.Select(l => l[5]).ToList();
-                List<int> pressure = lines.Select(l => l[6]).ToList();
-                signature.SetFeature(Svc2021.Azimuth, azimuth);
-                signature.SetFeature(Svc2021.Altitude, altitude);
-                signature.SetFeature(Svc2021.Pressure, pressure);
-                if (standardFeatures)
-                {
-                    signature.SetFeature(Features.Azimuth, standardLines.Select(l => (double)l[4]).ToList());
-                    signature.SetFeature(Features.Altitude, standardLines.Select(l => (double)l[5]).ToList());
-                    signature.SetFeature(Features.Pressure, standardLines.Select(l => (double)l[6]).ToList().ToList());
-                }
+                //SignatureHelper.CalculateStandardStatistics(signature);
 
 
             }
+
 
         }
 
+        private static Line ParseLine(string lineString, int pressureColumn)
+        {
+            var parts = lineString.Split(' ');
+            return new Line()
+            {
+                X = int.Parse(parts[0]),
+                Y = int.Parse(parts[1]),
+                T = long.Parse(parts[2]),
+                Pressure = double.Parse(parts[pressureColumn], numberFormat)
+            };
+        }
 
-
+     
     }
 }

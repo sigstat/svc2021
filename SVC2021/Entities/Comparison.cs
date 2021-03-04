@@ -8,9 +8,9 @@ namespace SVC2021.Entities
     class Comparison1v1
     {
         public string ReferenceSignatureFile { get; set; }
-        public Signature ReferenceSignature { get; set; }
+        public Svc2021Signature ReferenceSignature { get; set; }
         public string QuestionedSignatureFile { get; set; }
-        public Signature QuestionedSignature { get; set; }
+        public Svc2021Signature QuestionedSignature { get; set; }
 
         public double Decision { get; set; }
     }

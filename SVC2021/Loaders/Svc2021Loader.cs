@@ -106,7 +106,7 @@ namespace SVC2021
             {
                 File = file;
                 var pathParts = file.Split('/');
-               
+
                 this.Split = Enum.Parse<Split>(pathParts[^3], true);
                 this.InputDevice = Enum.Parse<InputDevice>(pathParts[^2], true);
 
@@ -232,38 +232,41 @@ namespace SVC2021
             {
                 //cut names if the files are in directories
                 var signatureGroups = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
-                this.LogTrace(signatureGroups.Count().ToString() + " signers found in database");
-                foreach (var group in signatureGroups)
+                using (var progress = ProgressHelper.StartNew(signatureGroups.Count(), 1))
                 {
-                    Signer signer = new Signer { ID = group.Key };
+                    foreach (var group in signatureGroups)
+                    {
+                        Signer signer = new Signer { ID = group.Key };
 
-                    if (signerFilter != null && !signerFilter(signer))
-                    {
-                        continue;
-                    }
-                    foreach (var signatureFile in group)
-                    {
-                        Svc2021Signature signature = new Svc2021Signature
+                        if (signerFilter != null && !signerFilter(signer))
                         {
-                            Signer = signer,
-                            ID = signatureFile.SignatureID,
-                            DB = signatureFile.DB,
-                            Split = signatureFile.Split,
-                            FileName = signatureFile.File,
-                            InputDevice = signatureFile.InputDevice,
-                            Origin = signatureFile.Origin
-                        };
-                        using (Stream s = zip.GetEntry(signatureFile.File).Open())
-                        {
-                            LoadSignature(signature, s, StandardFeatures);
+                            continue;
                         }
-                        signer.Signatures.Add(signature);
+                        foreach (var signatureFile in group)
+                        {
+                            Svc2021Signature signature = new Svc2021Signature
+                            {
+                                Signer = signer,
+                                ID = signatureFile.SignatureID,
+                                DB = signatureFile.DB,
+                                Split = signatureFile.Split,
+                                FileName = signatureFile.File,
+                                InputDevice = signatureFile.InputDevice,
+                                Origin = signatureFile.Origin
+                            };
+                            using (Stream s = zip.GetEntry(signatureFile.File).Open())
+                            {
+                                LoadSignature(signature, s, StandardFeatures);
+                            }
+                            signer.Signatures.Add(signature);
 
 
+                        }
+                        signer.Signatures = signer.Signatures.OrderBy(s => s.ID).ToList();
+
+                        progress.Value++;
+                        yield return signer;
                     }
-                    signer.Signatures = signer.Signatures.OrderBy(s => s.ID).ToList();
-
-                    yield return signer;
                 }
             }
             this.LogInformation("Enumerating signers finished.");
@@ -322,10 +325,10 @@ namespace SVC2021
                 lines = linesArray
                     .Skip(1)
                     .Where(l => l != "")
-                    .Select(l => ParseLine(l,pressureColumn)).ToArray()
+                    .Select(l => ParseLine(l, pressureColumn)).ToArray()
                     .ToList();
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 throw new Exception("Error parsing signature: " + sig.ID, exc);
             }
@@ -434,6 +437,6 @@ namespace SVC2021
             };
         }
 
-     
+
     }
 }

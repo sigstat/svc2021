@@ -23,8 +23,8 @@ namespace SVC2021.Helpers
                         ReferenceSignatureFile = parts[0],
                         QuestionedSignatureFile = parts[1],
                         // reference the signature objects if, a preloaded database is already available
-                        ReferenceSignature = db?.Signatures[parts[0].ToLower()],
-                        QuestionedSignature = db?.Signatures[parts[1].ToLower()],
+                        ReferenceSignature = db?[parts[0].ToLower()],
+                        QuestionedSignature = db?[parts[1].ToLower()],
                     };
                 }
             }

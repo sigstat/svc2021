@@ -12,6 +12,6 @@ namespace SVC2021.Entities
         public string QuestionedSignatureFile { get; set; }
         public Svc2021Signature QuestionedSignature { get; set; }
 
-        public double Decision { get; set; }
+        public double Prediction { get; set; }
     }
 }

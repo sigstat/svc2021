@@ -49,6 +49,8 @@ namespace SVC2021
         public static readonly FeatureDescriptor<Split> Split = FeatureDescriptor.Get<Split>("Svc2021.Split");
         public static readonly FeatureDescriptor<InputDevice> InputDevice = FeatureDescriptor.Get<InputDevice>("Svc2021.InputDevice");
 
+        public static readonly FeatureDescriptor<bool> IsPreprocessed = FeatureDescriptor.Get<bool>("Svc2021.IsPreprocessed");
+
 
         /// <summary>
         /// X cooridnates from the online signature imported from the SVC2021 database
@@ -92,7 +94,7 @@ namespace SVC2021
         /// </summary>
         public override int SamplingFrequency { get { return 100; } }
 
-        private struct SignatureFile
+        public struct SignatureFile
         {
             public string File { get; set; }
             public string SignerID { get; set; }
@@ -411,7 +413,7 @@ namespace SVC2021
                 signature.SetFeature(Features.X, standardLines.Select(l => (double)l.X).ToList());
                 signature.SetFeature(Features.Y, standardLines.Select(l => (double)l.Y).ToList());
                 signature.SetFeature(Features.T, standardLines.Select(l => (double)l.T).ToList());
-                signature.SetFeature(Features.T, standardLines.Select(l => l.Pressure).ToList());
+                signature.SetFeature(Features.Pressure, standardLines.Select(l => l.Pressure).ToList());
 
                 //signature.SetFeature(Features.PenDown, standardLines.Select(l => l[3] != 0).ToList());
                 //signature.SetFeature(Features.PointType, standartPointType);

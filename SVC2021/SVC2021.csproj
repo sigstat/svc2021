@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SigStat" Version="0.2.0" />
+    <PackageReference Include="SigStat" Version="0.2.1" />
   </ItemGroup>
 
   <ItemGroup>

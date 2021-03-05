@@ -20,5 +20,12 @@ namespace SVC2021.Entities
         public List<double> Pressure { get => GetFeature(Svc2021.Pressure); set => SetFeature(Svc2021.Pressure, value); }
         public List<long> T { get => GetFeature(Svc2021.T); set => SetFeature(Svc2021.T, value); }
 
+        public bool IsPreprocessed { get => GetFeature(Svc2021.IsPreprocessed); set => SetFeature(Svc2021.IsPreprocessed, value); }
+
+        public Svc2021Signature()
+        {
+            IsPreprocessed = false;
+        }
+
     }
 }

@@ -107,7 +107,7 @@ namespace SVC2021
             public SignatureFile(string file)
             {
                 File = file;
-                var pathParts = file.Split('/');
+                string[] pathParts = file.Contains("/") ? file.Split('/') : file.Split('\\');
 
                 this.Split = Enum.Parse<Split>(pathParts[^3], true);
                 this.InputDevice = Enum.Parse<InputDevice>(pathParts[^2], true);

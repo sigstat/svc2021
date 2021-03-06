@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SigStat" Version="0.2.1" />
+    <PackageReference Include="EPPlus" Version="4.5.3.1" />
+    <PackageReference Include="SigStat" Version="0.2.4" />
   </ItemGroup>
 
   <ItemGroup>

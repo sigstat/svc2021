@@ -1,6 +1,9 @@
-﻿using SVC2021.Entities;
+﻿using OfficeOpenXml;
+using SigStat.Common.Helpers;
+using SVC2021.Entities;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -8,6 +11,8 @@ namespace SVC2021.Helpers
 {
     static class ComparisonHelper
     {
+        static readonly IFormatProvider numberFormat = new CultureInfo("EN-US").NumberFormat;
+
         public static IEnumerable<Comparison1v1> LoadComparisons(string fileName, Database db = null)
         {
             using (StreamReader sr = new StreamReader(fileName))
@@ -17,7 +22,7 @@ namespace SVC2021.Helpers
                     var line = sr.ReadLine();
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
-                    string [] parts = line.Split(' ');
+                    string[] parts = line.Split(' ');
                     yield return new Comparison1v1()
                     {
                         ReferenceSignatureFile = parts[0],
@@ -28,7 +33,40 @@ namespace SVC2021.Helpers
                     };
                 }
             }
-            
+
+        }
+
+        public static void SavePredictions(this IEnumerable<Comparison1v1> comparisons, string filename)
+        {
+            using (var sw = new StreamWriter(filename, false, Encoding.UTF8))
+            {
+                foreach (var comparison in comparisons)
+                {
+                    sw.WriteLine(comparison.Prediction.ToString("n3", numberFormat));
+                }
+            }
+        }
+
+        public static void SaveComparisons(this IEnumerable<Comparison1v1> comparisons, string filename)
+        {
+            using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
+            {
+                var sheet = package.Workbook.Worksheets.Add("Comparisons " + DateTime.Now);
+                ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                package.Save();
+
+            }
+        }
+
+        public static void SaveBenchmarkResults(this IEnumerable<BenchmarkResult> comparisons, string filename)
+        {
+            using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
+            {
+                var sheet = package.Workbook.Worksheets.Add("Benchmark " + DateTime.Now);
+                ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                package.Save();
+
+            }
         }
     }
 }

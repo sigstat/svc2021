@@ -33,10 +33,10 @@ namespace SVC2021.Classifiers
         public double ForgeryThreshold;
 
 
-        /// <summary>
-        /// DTW distance matrix of the genuine signatures
-        /// </summary>
-        public DistanceMatrix<string, string, double> DistanceMatrix;
+        ///// <summary>
+        ///// DTW distance matrix of the genuine signatures
+        ///// </summary>
+        //public DistanceMatrix<string, string, double> DistanceMatrix;
 
 
     }
@@ -96,7 +96,7 @@ namespace SVC2021.Classifiers
             {
                 SignerID = signerID,
                 ReferenceSignatures = references.Select(g => new KeyValuePair<string, double[][]>(g.ID, g.Values)).ToList(),
-                DistanceMatrix = distanceMatrix,
+                //DistanceMatrix = distanceMatrix,
                 GenuineThreshold = min,
                 ForgeryThreshold = max + (max - min)
             };
@@ -113,7 +113,7 @@ namespace SVC2021.Classifiers
             {
                 var d = DistanceFunction.Calculate(reference.Value, testSignature);
                 distances.Add(d);
-                dtwModel.DistanceMatrix[signature.ID, reference.Key] = d;
+                //dtwModel.DistanceMatrix[signature.ID, reference.Key] = d;
                 this.LogTrace(new ClassifierDistanceLogState(model.SignerID, signature?.Signer.ID, reference.Key, signature.ID, d));
             }
 

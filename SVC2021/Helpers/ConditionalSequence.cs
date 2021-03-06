@@ -42,12 +42,21 @@ namespace SigStat.Common.Pipeline
         /// <param name="signature">Signature to execute transform on.</param>
         public override void Transform(Signature signature)
         {
+            //Avoid locking if possible
             if (ConditionFlag != null && signature.GetFeature(ConditionFlag) == true)
                 return;
 
-            base.Transform(signature);
-          
-            signature.SetFeature(ConditionFlag, true);
+            lock (signature)
+            {
+                //It's essential to check the flag within the lock-block
+                if (ConditionFlag != null && signature.GetFeature(ConditionFlag) == true)
+                    return;
+
+
+                base.Transform(signature);
+
+                signature.SetFeature(ConditionFlag, true);
+            }
         }
     }
 }

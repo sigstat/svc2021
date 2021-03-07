@@ -38,7 +38,7 @@ namespace SVC2021.Helpers
 
         public static void SavePredictions(this IEnumerable<Comparison1v1> comparisons, string filename)
         {
-            using (var sw = new StreamWriter(filename, false, Encoding.UTF8))
+            using (var sw = new StreamWriter(filename, false, Encoding.ASCII))
             {
                 foreach (var comparison in comparisons)
                 {

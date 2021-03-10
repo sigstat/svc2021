@@ -65,7 +65,7 @@ namespace SVC2021
                 Verifier verifier = new Verifier()
                 {
                     Pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) {
-                            Pipelines.FilterScale1TranslateCog
+                            Pipelines.FilterScale1TranslateCogXY
                         },
                     Classifier = new DtwMinMaxClassifier() { Features = { Features.X, Features.Y, Features.Pressure } }
                 };

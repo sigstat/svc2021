@@ -127,7 +127,7 @@ namespace SVC2021
                 //SignerID = parts[0].PadLeft(2, '0');
             }
 
-            private static DB GetDatabase(Split split, InputDevice inputDevice, string signerId, string file)
+            public static DB GetDatabase(Split split, InputDevice inputDevice, string signerId, string file)
             {
                 switch (split)
                 {
@@ -282,7 +282,7 @@ namespace SVC2021
         /// <param name="standardFeatures">Convert loaded data to standard <see cref="Features"/>.</param>
         public void LoadSignature(Signature signature, string path, bool standardFeatures)
         {
-            ParseSignature(signature, File.ReadAllLines(path), standardFeatures);
+            ParseSignature(signature, File.ReadAllLines(path), standardFeatures, Logger);
         }
 
         /// <summary>
@@ -305,8 +305,16 @@ namespace SVC2021
             public int Y;
             public long T;
             public double Pressure;
+
+            public Line(Line line)
+            {
+                this.X = line.X;
+                this.Y = line.Y;
+                this.T = line.T;
+                this.Pressure = line.Pressure;
+            }
         }
-        private static void ParseSignature(Signature sig, string[] linesArray, bool standardFeatures)
+        private static void ParseSignature(Signature sig, string[] linesArray, bool standardFeatures, ILogger logger = null)
         {
             var signature = (Svc2021Signature)sig;
 
@@ -327,13 +335,24 @@ namespace SVC2021
                 lines = linesArray
                     .Skip(1)
                     .Where(l => l != "")
-                    .Select(l => ParseLine(l, pressureColumn)).ToArray()
+                    .Select(l => ParseLine(l, pressureColumn))
                     .ToList();
             }
             catch (Exception exc)
             {
                 throw new Exception("Error parsing signature: " + sig.ID, exc);
             }
+
+            // Sometimes timestamps are missing. In these cases we fill them in with uniform data. E.g: Evaluation\\stylus\\u0114_s_u1015s0001_sg0004.txt
+            if (lines.All(l => l.T == 0))
+            {
+                logger?.LogWarning($"All timestamps for signature {sig.ID} were 0. Compensating with uniform timestamps.");
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    lines[i] = new Line(lines[i]) { T = i * 10 };
+                }
+            }
+
 
             //HACK: same timestamp for measurements do not make sense
             // therefore, we remove the second entry

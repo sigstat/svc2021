@@ -21,17 +21,35 @@ using SVC2021.Helpers;
 namespace SVC2021
 {
     class Program
-    {
+    { 
+
+        public static string DbPath = GetDbPath();
+        public static string SignaturesDirectory = "Data\\Signatures";
+
+
+        public static string ComparisonsFile1 = "Data\\Validation\\Task1_comparisons.txt";
+        public static string ComparisonsFile2 = "Data\\Validation\\Task2_comparisons.txt";
+        public static string ComparisonsFile3 = "Data\\Validation\\Task3_comparisons.txt";
+
+
 
         static void Main(string[] args)
         {
-            //Please set the SVC2021 environment variable to point to DeepSignDB.zip at your computer e.g.: C:\Databases\DeepSignDB.zip
-            var dbPath = Environment.GetEnvironmentVariable("SVC2021");
-            var comparisonsFile = "Data\\Validation\\Task1_comparisons.txt";
+            Experiments.TestLoader();
 
-            Svc2021SolverV1.Solve(dbPath, comparisonsFile);
+            //Svc2021SolverV1.Solve(DBPath, ComparisonsFile1);
+            
         }
 
- 
+
+        private static string GetDbPath()
+        {
+            string path = Environment.GetEnvironmentVariable("SVC2021");
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                throw new Exception(@"Please set the SVC2021 environment variable to point to DeepSignDB.zip at your computer e.g.: C:\Databases\DeepSignDB.zip");
+
+            return path;
+        }
+
     }
 }

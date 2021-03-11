@@ -13,8 +13,10 @@ namespace SVC2021
         public static void TestLoader()
         {
             Svc2021Loader l = new Svc2021Loader(Program.DbPath, true) { Logger = new SimpleConsoleLogger()};
-            string file = "Evaluation\\stylus\\u0114_s_u1015s0001_sg0004.txt";
+            //string file = "Evaluation\\stylus\\u0114_s_u1015s0001_sg0004.txt";
             //string file = "Evaluation\\stylus\\u0115_s_u1016s0001_sg0003.txt";
+
+            string file = "Evaluation\\finger\\u0377_g_u139_s1_g1_b2_sign_w5_c_007.txt";
 
 
             var fi = new Svc2021Loader.SignatureFile(file);

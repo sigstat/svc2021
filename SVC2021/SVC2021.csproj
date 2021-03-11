@@ -21,6 +21,9 @@
     <None Update="Data\Signatures\u0115_s_u1016s0001_sg0003.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Data\Signatures\u0377_g_u139_s1_g1_b2_sign_w5_c_007.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Data\Validation\Task1_comparisons.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

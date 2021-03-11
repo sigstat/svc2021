@@ -35,10 +35,10 @@ namespace SVC2021
 
         static void Main(string[] args)
         {
-            Experiments.TestLoader();
+            //Experiments.TestLoader();
 
-            //Svc2021SolverV1.Solve(DBPath, ComparisonsFile1);
-            
+            Svc2021SolverV1.Solve(DbPath, ComparisonsFile2);
+
         }
 
 

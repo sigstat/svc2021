@@ -335,7 +335,7 @@ namespace SVC2021
                 lines = linesArray
                     .Skip(1)
                     .Where(l => l != "")
-                    .Select(l => ParseLine(l, pressureColumn))
+                    .Select(l => ParseLine(l, pressureColumn, signature.InputDevice))
                     .ToList();
             }
             catch (Exception exc)
@@ -446,7 +446,7 @@ namespace SVC2021
 
         }
 
-        private static Line ParseLine(string lineString, int pressureColumn)
+        private static Line ParseLine(string lineString, int pressureColumn, InputDevice inputDevice)
         {
             var parts = lineString.Split(' ');
             return new Line()
@@ -454,7 +454,9 @@ namespace SVC2021
                 X = int.Parse(parts[0]),
                 Y = int.Parse(parts[1]),
                 T = long.Parse(parts[2]),
+                //Finger datasets do not contain meaningfull pressure information
                 Pressure = double.Parse(parts[pressureColumn], numberFormat)
+                //inputDevice == InputDevice.Finger ? 1: double.Parse(parts[pressureColumn], numberFormat)
             };
         }
 

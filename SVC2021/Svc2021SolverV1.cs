@@ -26,7 +26,9 @@ namespace SVC2021
         public static void Solve(string dbPath, string comparisonsFile)
         {
             SimpleConsoleLogger logger = new SimpleConsoleLogger();
-
+            string fileBase = Path.GetFileNameWithoutExtension(comparisonsFile);
+            string predictionsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_hhmm") + "_predictions.txt";
+            string resultsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_hhmm") + "_results.xlsx";
 
             Debug("Loading signatures");
             var loader = new Svc2021Loader(dbPath, true) { Logger = logger };
@@ -65,7 +67,10 @@ namespace SVC2021
                 Verifier verifier = new Verifier()
                 {
                     Pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) {
-                            Pipelines.FilterScale1TranslateCogXY
+                        Pipelines.Filter,
+                        Pipelines.Scale1X, Pipelines.Scale1Y, Pipelines.Scale1Pressure,
+                        Pipelines.TranslateCogX, Pipelines.TranslateCogY, Pipelines.TranslateCogPressure
+
                         },
                     Classifier = new DtwMinMaxClassifier() { Features = { Features.X, Features.Y, Features.Pressure } }
                 };
@@ -88,9 +93,8 @@ namespace SVC2021
 
             Debug($"Predictions ready");
 
-            string fileBase = Path.GetFileNameWithoutExtension(comparisonsFile);
-            ComparisonHelper.SavePredictions(comparisons, fileBase + "_predictions.txt");
-            ComparisonHelper.SaveComparisons(comparisons, fileBase + "_results.xlsx");
+            ComparisonHelper.SavePredictions(comparisons, predictionsFile);
+            ComparisonHelper.SaveComparisons(comparisons, resultsFile);
 
             Debug($"Predictions saved");
 
@@ -99,26 +103,26 @@ namespace SVC2021
             var results = new ConcurrentBag<BenchmarkResult>();
             Parallel.For(0, 1000, parallelOptions, i =>
             {
-               BenchmarkResult benchmark = new BenchmarkResult();
-               benchmark.Threshold = ((double)i) / 1000;
-               foreach (var comparison in comparisons)
-               {
-                   if (comparison.ExpectedPrediction == 1)
-                   {
-                       benchmark.ForgeryCount++;
-                       if (comparison.Prediction < benchmark.Threshold) benchmark.FalseAcceptance++;
-                   }
-                   else
-                   {
-                       benchmark.GenuineCount++;
-                       if (comparison.Prediction >= benchmark.Threshold) benchmark.FalseRejection++;
-                   }
-               }
-               results.Add(benchmark);
-               progress.IncrementValue();
+                BenchmarkResult benchmark = new BenchmarkResult();
+                benchmark.Threshold = ((double)i) / 1000;
+                foreach (var comparison in comparisons)
+                {
+                    if (comparison.ExpectedPrediction == 1)
+                    {
+                        benchmark.ForgeryCount++;
+                        if (comparison.Prediction < benchmark.Threshold) benchmark.FalseAcceptance++;
+                    }
+                    else
+                    {
+                        benchmark.GenuineCount++;
+                        if (comparison.Prediction >= benchmark.Threshold) benchmark.FalseRejection++;
+                    }
+                }
+                results.Add(benchmark);
+                progress.IncrementValue();
             });
 
-            ComparisonHelper.SaveBenchmarkResults(results.OrderBy(r=>r.Threshold), fileBase + "_results.xlsx");
+            ComparisonHelper.SaveBenchmarkResults(results.OrderBy(r => r.Threshold), resultsFile);
 
 
             Debug($"Ready");

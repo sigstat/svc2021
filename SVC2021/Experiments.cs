@@ -20,7 +20,6 @@ namespace SVC2021
 {
     static class Experiments
     {
-        static readonly string ExtractedDbPath = @"C:\Source\DeepSignDB\DeepSignDB";
         public static void TestSigner(string comparisonsFile)
         {
             string signerID = "0236";

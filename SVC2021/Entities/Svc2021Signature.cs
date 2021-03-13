@@ -1,4 +1,6 @@
 ﻿using SigStat.Common;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -24,6 +26,8 @@ namespace SVC2021.Entities
         public List<int> Svc_Y { get => GetFeature(Svc2021.Y); set => SetFeature(Svc2021.Y, value); }
         public List<double> Svc_Pressure { get => GetFeature(Svc2021.Pressure); set => SetFeature(Svc2021.Pressure, value); }
         public List<long> Svc_T { get => GetFeature(Svc2021.T); set => SetFeature(Svc2021.T, value); }
+
+        public Image<Rgba32> Image { get => GetFeature(Features.Image);  set => SetFeature(Features.Image, value); }
 
         public bool IsPreprocessed { get => GetFeature(Svc2021.IsPreprocessed); set => SetFeature(Svc2021.IsPreprocessed, value); }
 

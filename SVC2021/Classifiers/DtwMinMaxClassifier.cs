@@ -114,7 +114,7 @@ namespace SVC2021.Classifiers
                 var d = DistanceFunction.Calculate(reference.Value, testSignature);
                 distances.Add(d);
                 //dtwModel.DistanceMatrix[signature.ID, reference.Key] = d;
-                this.LogTrace(new ClassifierDistanceLogState(model.SignerID, signature?.Signer.ID, reference.Key, signature.ID, d));
+                this.LogTrace(new ClassifierDistanceLogState(model.SignerID, signature?.Signer?.ID, reference.Key, signature.ID, d));
             }
 
             var avgDistance = distances.Average();

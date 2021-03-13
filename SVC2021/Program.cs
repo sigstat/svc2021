@@ -31,13 +31,16 @@ namespace SVC2021
         public static string ComparisonsFile2 = "Data\\Validation\\Task2_comparisons.txt";
         public static string ComparisonsFile3 = "Data\\Validation\\Task3_comparisons.txt";
 
+        // Set MaxDegreeOfParallelism to 1 to debug on a single thread, set to -1 to use all cores
+        public static readonly ParallelOptions ParallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = -1 };
+
 
 
         static void Main(string[] args)
         {
-            //Experiments.TestLoader();
+            Experiments.TestSigner(ComparisonsFile1);
 
-            Svc2021SolverV1.Solve(DbPath, ComparisonsFile2);
+            //Svc2021SolverV1.Solve(DbPath, ComparisonsFile2);
 
         }
 

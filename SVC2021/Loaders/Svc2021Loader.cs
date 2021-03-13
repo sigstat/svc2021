@@ -274,6 +274,43 @@ namespace SVC2021
             this.LogInformation("Enumerating signers finished.");
         }
 
+
+        public IEnumerable<Svc2021Signature> LoadSignatures(params string[] signatureIds)
+        {
+            string[] localIds = signatureIds.ToArray();
+            for (int i = 0; i < localIds.Length; i++)
+            {
+                if (localIds[i].Contains("\\"))
+                    localIds[i] = localIds[i].Replace("\\", "/");
+            }
+            this.LogInformation($"Loading {signatureIds.Length} signatures");
+            using (ZipArchive zip = ZipFile.OpenRead(DatabasePath))
+            {
+                // We know the structure of the zip file, therefore we can generate the entry names directly from IDs, 
+                // without the need to read the entries once
+                var signatureFiles = localIds.Select(id => new SignatureFile("DeepSignDB/" + id)).ToList();
+
+                foreach (var signatureFile in signatureFiles)
+                {
+
+                    Svc2021Signature signature = new Svc2021Signature
+                    {
+                        Signer = new Signer() { ID = signatureFile.SignerID},
+                        ID = signatureFile.SignatureID,
+                        DB = signatureFile.DB,
+                        Split = signatureFile.Split,
+                        FileName = signatureFile.File,
+                        InputDevice = signatureFile.InputDevice,
+                        Origin = signatureFile.Origin
+                    };
+                    using (Stream s = zip.GetEntry(signatureFile.File).Open())
+                    {
+                        LoadSignature(signature, s, StandardFeatures);
+                    }
+                    yield return signature;
+                }
+            }
+        }
         /// <summary>
         /// Loads one signature from specified file path.
         /// </summary>

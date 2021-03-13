@@ -20,8 +20,7 @@ namespace SVC2021
     public static class Svc2021SolverV1
     {
         static Stopwatch sw = Stopwatch.StartNew();
-        // Set MaxDegreeOfParallelism to 1 to debug on a single thread
-        static ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = -1 };
+
 
         public static void Solve(string dbPath, string comparisonsFile)
         {
@@ -62,7 +61,7 @@ namespace SVC2021
             var verifiersBySignature = new ConcurrentDictionary<string, Verifier>();
 
             var progress = ProgressHelper.StartNew(referenceSigners.Count, 3);
-            Parallel.ForEach(referenceSigners, parallelOptions, signer =>
+            Parallel.ForEach(referenceSigners, Program.ParallelOptions, signer =>
             {
                 Verifier verifier = new Verifier()
                 {
@@ -85,7 +84,7 @@ namespace SVC2021
             Debug($"Verifiers trained");
 
             progress = ProgressHelper.StartNew(comparisons.Count, 3);
-            Parallel.ForEach(comparisons, parallelOptions, comparison =>
+            Parallel.ForEach(comparisons, Program.ParallelOptions, comparison =>
             {
                 comparison.Prediction = 1 - verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
                 progress.IncrementValue();
@@ -101,7 +100,7 @@ namespace SVC2021
 
             progress = ProgressHelper.StartNew(1000, 3);
             var results = new ConcurrentBag<BenchmarkResult>();
-            Parallel.For(0, 1000, parallelOptions, i =>
+            Parallel.For(0, 1000, Program.ParallelOptions, i =>
             {
                 BenchmarkResult benchmark = new BenchmarkResult();
                 benchmark.Threshold = ((double)i) / 1000;

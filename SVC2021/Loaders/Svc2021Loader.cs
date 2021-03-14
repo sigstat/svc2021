@@ -274,6 +274,51 @@ namespace SVC2021
             this.LogInformation("Enumerating signers finished.");
         }
 
+        //public IEnumerable<Signer> ListSignersFast(Predicate<Signer> signerFilter)
+        //{
+
+        //    //TODO: EnumerateSigners should ba able to operate with a directory path, not just a zip file
+        //    signerFilter = signerFilter ?? SignerFilter;
+
+        //    this.LogInformation("Enumerating signers started.");
+        //    var signers = new Dictionary<string, Signer>();
+
+        //    using (ZipArchive zip = ZipFile.OpenRead(DatabasePath))
+        //    {
+        //        var entries = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt"));
+        //        //cut names if the files are in directories
+        //        using (var progress = ProgressHelper.StartNew(zip.Entries.Count, 1))
+        //        {
+        //            foreach (var entry in entries)
+        //            {
+        //                SignatureFile signatureFile = new SignatureFile(entry.FullName);
+        //                Signer signer = null;
+        //                if (!signers.TryGetValue(signatureFile.SignerID, out signer))
+        //                {
+        //                    signer = new Signer() { ID = signatureFile.SignerID };
+        //                    signers.Add(signatureFile.SignerID, signer);
+        //                }
+        //                Svc2021Signature signature = new Svc2021Signature
+        //                {
+        //                    Signer = signer,
+        //                    ID = signatureFile.SignatureID,
+        //                    DB = signatureFile.DB,
+        //                    Split = signatureFile.Split,
+        //                    FileName = signatureFile.File,
+        //                    InputDevice = signatureFile.InputDevice,
+        //                    Origin = signatureFile.Origin
+        //                };
+        //                using (Stream s = entry.Open())
+        //                {
+        //                    LoadSignature(signature, s, StandardFeatures);
+        //                }
+        //                signer.Signatures.Add(signature);
+        //                progress.IncrementValue();
+        //            }
+        //        }
+        //    }
+        //    return signers.Values;
+        //}
 
         public IEnumerable<Svc2021Signature> LoadSignatures(params string[] signatureIds)
         {
@@ -295,7 +340,7 @@ namespace SVC2021
 
                     Svc2021Signature signature = new Svc2021Signature
                     {
-                        Signer = new Signer() { ID = signatureFile.SignerID},
+                        Signer = new Signer() { ID = signatureFile.SignerID },
                         ID = signatureFile.SignatureID,
                         DB = signatureFile.DB,
                         Split = signatureFile.Split,

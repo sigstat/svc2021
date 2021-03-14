@@ -46,7 +46,7 @@ namespace SVC2021
 
             var referenceSigners = new List<Signer>();
 
-            foreach (var signatureGroup in comparisons.Select(s => s.ReferenceSignature).GroupBy(s => s.Signer.ID + "_" + s.InputDevice))
+            foreach (var signatureGroup in comparisons.Select(s => s.ReferenceSignature).Distinct().GroupBy(s => s.Signer.ID + "_" + s.InputDevice))
             {
                 var signer = new Signer() { ID = signatureGroup.Key };
                 signer.Signatures.AddRange(signatureGroup);
@@ -100,20 +100,21 @@ namespace SVC2021
 
             progress = ProgressHelper.StartNew(1000, 3);
             var results = new ConcurrentBag<BenchmarkResult>();
+            int forgeryCount = comparisons.Count(c => c.ExpectedPrediction == 1);
+            int genuineCount = comparisons.Count(c => c.ExpectedPrediction == 0);
+
             Parallel.For(0, 1000, Program.ParallelOptions, i =>
             {
-                BenchmarkResult benchmark = new BenchmarkResult();
+                BenchmarkResult benchmark = new BenchmarkResult() { ForgeryCount = forgeryCount, GenuineCount = genuineCount };
                 benchmark.Threshold = ((double)i) / 1000;
                 foreach (var comparison in comparisons)
                 {
                     if (comparison.ExpectedPrediction == 1)
                     {
-                        benchmark.ForgeryCount++;
                         if (comparison.Prediction < benchmark.Threshold) benchmark.FalseAcceptance++;
                     }
                     else
                     {
-                        benchmark.GenuineCount++;
                         if (comparison.Prediction >= benchmark.Threshold) benchmark.FalseRejection++;
                     }
                 }

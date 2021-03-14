@@ -38,9 +38,9 @@ namespace SVC2021
 
         static void Main(string[] args)
         {
-            Experiments.TestSigner(ComparisonsFile1);
+            //Experiments.TestSigner(ComparisonsFile1);
 
-            //Svc2021SolverV1.Solve(DbPath, ComparisonsFile2);
+            Svc2021SolverV1.Solve(DbPath, ComparisonsFile1);
 
         }
 

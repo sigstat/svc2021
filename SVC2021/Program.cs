@@ -29,7 +29,7 @@ namespace SVC2021
             var dbPath = Environment.GetEnvironmentVariable("SVC2021");
             var comparisonsFile = "Data\\Validation\\Task1_comparisons.txt";
 
-            Svc2021SolverV1.Solve(dbPath, comparisonsFile);
+            Svc2021SolverVC.Solve(dbPath, comparisonsFile);
         }
 
  

@@ -127,7 +127,7 @@ namespace SVC2021
                 //SignerID = parts[0].PadLeft(2, '0');
             }
 
-            private static DB GetDatabase(Split split, InputDevice inputDevice, string signerId, string file)
+            public static DB GetDatabase(Split split, InputDevice inputDevice, string signerId, string file)
             {
                 switch (split)
                 {
@@ -274,6 +274,88 @@ namespace SVC2021
             this.LogInformation("Enumerating signers finished.");
         }
 
+        //public IEnumerable<Signer> ListSignersFast(Predicate<Signer> signerFilter)
+        //{
+
+        //    //TODO: EnumerateSigners should ba able to operate with a directory path, not just a zip file
+        //    signerFilter = signerFilter ?? SignerFilter;
+
+        //    this.LogInformation("Enumerating signers started.");
+        //    var signers = new Dictionary<string, Signer>();
+
+        //    using (ZipArchive zip = ZipFile.OpenRead(DatabasePath))
+        //    {
+        //        var entries = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt"));
+        //        //cut names if the files are in directories
+        //        using (var progress = ProgressHelper.StartNew(zip.Entries.Count, 1))
+        //        {
+        //            foreach (var entry in entries)
+        //            {
+        //                SignatureFile signatureFile = new SignatureFile(entry.FullName);
+        //                Signer signer = null;
+        //                if (!signers.TryGetValue(signatureFile.SignerID, out signer))
+        //                {
+        //                    signer = new Signer() { ID = signatureFile.SignerID };
+        //                    signers.Add(signatureFile.SignerID, signer);
+        //                }
+        //                Svc2021Signature signature = new Svc2021Signature
+        //                {
+        //                    Signer = signer,
+        //                    ID = signatureFile.SignatureID,
+        //                    DB = signatureFile.DB,
+        //                    Split = signatureFile.Split,
+        //                    FileName = signatureFile.File,
+        //                    InputDevice = signatureFile.InputDevice,
+        //                    Origin = signatureFile.Origin
+        //                };
+        //                using (Stream s = entry.Open())
+        //                {
+        //                    LoadSignature(signature, s, StandardFeatures);
+        //                }
+        //                signer.Signatures.Add(signature);
+        //                progress.IncrementValue();
+        //            }
+        //        }
+        //    }
+        //    return signers.Values;
+        //}
+
+        public IEnumerable<Svc2021Signature> LoadSignatures(params string[] signatureIds)
+        {
+            string[] localIds = signatureIds.ToArray();
+            for (int i = 0; i < localIds.Length; i++)
+            {
+                if (localIds[i].Contains("\\"))
+                    localIds[i] = localIds[i].Replace("\\", "/");
+            }
+            this.LogInformation($"Loading {signatureIds.Length} signatures");
+            using (ZipArchive zip = ZipFile.OpenRead(DatabasePath))
+            {
+                // We know the structure of the zip file, therefore we can generate the entry names directly from IDs, 
+                // without the need to read the entries once
+                var signatureFiles = localIds.Select(id => new SignatureFile("DeepSignDB/" + id)).ToList();
+
+                foreach (var signatureFile in signatureFiles)
+                {
+
+                    Svc2021Signature signature = new Svc2021Signature
+                    {
+                        Signer = new Signer() { ID = signatureFile.SignerID },
+                        ID = signatureFile.SignatureID,
+                        DB = signatureFile.DB,
+                        Split = signatureFile.Split,
+                        FileName = signatureFile.File,
+                        InputDevice = signatureFile.InputDevice,
+                        Origin = signatureFile.Origin
+                    };
+                    using (Stream s = zip.GetEntry(signatureFile.File).Open())
+                    {
+                        LoadSignature(signature, s, StandardFeatures);
+                    }
+                    yield return signature;
+                }
+            }
+        }
         /// <summary>
         /// Loads one signature from specified file path.
         /// </summary>
@@ -282,7 +364,7 @@ namespace SVC2021
         /// <param name="standardFeatures">Convert loaded data to standard <see cref="Features"/>.</param>
         public void LoadSignature(Signature signature, string path, bool standardFeatures)
         {
-            ParseSignature(signature, File.ReadAllLines(path), standardFeatures);
+            ParseSignature(signature, File.ReadAllLines(path), standardFeatures, Logger);
         }
 
         /// <summary>
@@ -305,8 +387,16 @@ namespace SVC2021
             public int Y;
             public long T;
             public double Pressure;
+
+            public Line(Line line)
+            {
+                this.X = line.X;
+                this.Y = line.Y;
+                this.T = line.T;
+                this.Pressure = line.Pressure;
+            }
         }
-        private static void ParseSignature(Signature sig, string[] linesArray, bool standardFeatures)
+        private static void ParseSignature(Signature sig, string[] linesArray, bool standardFeatures, ILogger logger = null)
         {
             var signature = (Svc2021Signature)sig;
 
@@ -327,13 +417,24 @@ namespace SVC2021
                 lines = linesArray
                     .Skip(1)
                     .Where(l => l != "")
-                    .Select(l => ParseLine(l, pressureColumn)).ToArray()
+                    .Select(l => ParseLine(l, pressureColumn, signature.InputDevice))
                     .ToList();
             }
             catch (Exception exc)
             {
                 throw new Exception("Error parsing signature: " + sig.ID, exc);
             }
+
+            // Sometimes timestamps are missing. In these cases we fill them in with uniform data. E.g: Evaluation\\stylus\\u0114_s_u1015s0001_sg0004.txt
+            if (lines.All(l => l.T == 0))
+            {
+                logger?.LogWarning($"All timestamps for signature {sig.ID} were 0. Compensating with uniform timestamps.");
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    lines[i] = new Line(lines[i]) { T = i * 10 };
+                }
+            }
+
 
             //HACK: same timestamp for measurements do not make sense
             // therefore, we remove the second entry
@@ -427,7 +528,7 @@ namespace SVC2021
 
         }
 
-        private static Line ParseLine(string lineString, int pressureColumn)
+        private static Line ParseLine(string lineString, int pressureColumn, InputDevice inputDevice)
         {
             var parts = lineString.Split(' ');
             return new Line()
@@ -435,7 +536,9 @@ namespace SVC2021
                 X = int.Parse(parts[0]),
                 Y = int.Parse(parts[1]),
                 T = long.Parse(parts[2]),
+                //Finger datasets do not contain meaningfull pressure information
                 Pressure = double.Parse(parts[pressureColumn], numberFormat)
+                //inputDevice == InputDevice.Finger ? 1: double.Parse(parts[pressureColumn], numberFormat)
             };
         }
 

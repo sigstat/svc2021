@@ -10,48 +10,53 @@ namespace SVC2021.Entities
 {
     class Comparison1v1
     {
-        [Display(Name ="Reference file")]
-        public string ReferenceSignatureFile { get; set; }
+        [Display(Name = "Reference file")]
+        public string ReferenceSignatureFile { get; private set; }
         [ExcelIgnore]
         public Svc2021Signature ReferenceSignature { get; set; }
         [Display(Name = "Reference signer")]
-        public string ReferenceSigner { get { return new SignatureFile(ReferenceSignatureFile).SignerID; } }
+        public string ReferenceSigner { get; private set; }
         [Display(Name = "Reference input")]
-        public InputDevice ReferenceInput { get { return new SignatureFile(ReferenceSignatureFile).InputDevice; } }
+        public InputDevice ReferenceInput { get; private set; }
 
         [Display(Name = "Questioned file")]
-        public string QuestionedSignatureFile { get; set; }
+        public string QuestionedSignatureFile { get; private set; }
         [ExcelIgnore]
         public Svc2021Signature QuestionedSignature { get; set; }
         [Display(Name = "Questioned signer")]
-        public string QuestionedSigner { get { return new SignatureFile(QuestionedSignatureFile).SignerID; } }
+        public string QuestionedSigner { get; private set; }
         [Display(Name = "Questioned input")]
-        public InputDevice QuestionedInput { get { return new SignatureFile(QuestionedSignatureFile).InputDevice; } }
+        public InputDevice QuestionedInput { get; private set; }
 
         [Display(Name = "Questioned origin")]
-        public string Origin
-        {
-            get
-            {
-                var rf = new SignatureFile(ReferenceSignatureFile);
-                var qf = new SignatureFile(QuestionedSignatureFile);
-                if (rf.SignerID != qf.SignerID)
-                    return "Random";
-                else if (qf.Origin == SigStat.Common.Origin.Forged)
-                    return "Forged";
-                else
-                    return "Genuine";
-
-            }
-        }
+        public string Origin { get; private set; }
 
         [Display(Name = "Prediction")]
         public double Prediction { get; set; }
 
         [Display(Name = "Expected prediction")]
-        public double ExpectedPrediction
+        public double ExpectedPrediction { get; private set; }
+        public Comparison1v1(string referenceSignatureFile, string questionedSignatureFile)
         {
-            get { return Origin == "Genuine" ? 0 : 1; }
+            ReferenceSignatureFile = referenceSignatureFile;
+            QuestionedSignatureFile = questionedSignatureFile;
+
+            var rf = new SignatureFile(referenceSignatureFile);
+            var qf = new SignatureFile(questionedSignatureFile);
+            if (rf.SignerID != qf.SignerID)
+                Origin = "Random";
+            else if (qf.Origin == SigStat.Common.Origin.Forged)
+                Origin = "Forged";
+            else
+                Origin = "Genuine";
+
+            ExpectedPrediction = Origin == "Genuine" ? 0 : 1;
+
+            ReferenceSigner = rf.SignerID;
+            ReferenceInput = rf.InputDevice;
+
+            QuestionedSigner = qf.SignerID;
+            QuestionedInput = qf.InputDevice;
         }
     }
 }

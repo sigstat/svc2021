@@ -25,13 +25,11 @@ namespace SVC2021.Helpers
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
                     string[] parts = line.Split(' ');
-                    yield return new Comparison1v1()
+                    yield return new Comparison1v1(parts[0], parts[1])
                     {
-                        ReferenceSignatureFile = parts[0],
-                        QuestionedSignatureFile = parts[1],
                         // reference the signature objects if, a preloaded database is already available
                         ReferenceSignature = db?[parts[0].ToLower()],
-                        QuestionedSignature = db?[parts[1].ToLower()],
+                        QuestionedSignature = db?[parts[1].ToLower()]
                     };
                 }
             }

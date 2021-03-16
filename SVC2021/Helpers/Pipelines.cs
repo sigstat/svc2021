@@ -29,7 +29,7 @@ namespace SVC2021.Helpers
         public static readonly ITransformation TranslateCogY = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.Y, OutputFeature = Features.Y };
         public static readonly ITransformation TranslateCogPressure = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.Pressure, OutputFeature = Features.Pressure };
 
-        public static readonly ITransformation FilterScale1TranslateCog = new SequentialTransformPipeline()
+        public static readonly ITransformation FilterScale1TranslateCogXYP = new SequentialTransformPipeline()
             {
                 Filter,
                 Scale1X,
@@ -38,6 +38,15 @@ namespace SVC2021.Helpers
                 TranslateCogX,
                 TranslateCogY,
                 TranslateCogPressure
+            };
+
+        public static readonly ITransformation FilterScale1TranslateCogXY = new SequentialTransformPipeline()
+            {
+                Filter,
+                Scale1X,
+                Scale1Y,
+                TranslateCogX,
+                TranslateCogY,
             };
     }
 }

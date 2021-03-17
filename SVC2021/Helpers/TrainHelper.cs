@@ -47,8 +47,8 @@ namespace SVC2021.Helpers
         {
             using (var sw = new StreamWriter(filename, false, Encoding.ASCII))
             {
-                sw.WriteLine($"Genuine;{genuineStatistics.Min};{genuineStatistics.Max};{genuineStatistics.Average};{genuineStatistics.Median}");
-                sw.WriteLine($"Forged;{forgedStatistics.Min};{forgedStatistics.Max};{forgedStatistics.Average};{forgedStatistics.Median}");
+                sw.WriteLine($"Genuine;{genuineStatistics.Min};{genuineStatistics.Max};{genuineStatistics.Average};{genuineStatistics.Median};{genuineStatistics.Stdev}");
+                sw.WriteLine($"Forged;{forgedStatistics.Min};{forgedStatistics.Max};{forgedStatistics.Average};{forgedStatistics.Median};{forgedStatistics.Stdev}");
 
                 foreach (var data in trainingData)
                 {
@@ -56,6 +56,35 @@ namespace SVC2021.Helpers
                 }
             }
 
+        }
+
+        public static void LoadTrainingStatistic(string filename, out TrainingStatistics genuineComparisonStat, out TrainingStatistics forgedComparisonStat)
+        {
+            using (var sr = new StreamReader(filename, Encoding.ASCII, false))
+            {
+                var genuineLineParts = sr.ReadLine().Split(";");
+
+                genuineComparisonStat = new TrainHelper.TrainingStatistics()
+                {
+                    Min = Convert.ToDouble(genuineLineParts[1]),
+                    Max = Convert.ToDouble(genuineLineParts[2]),
+                    Average = Convert.ToDouble(genuineLineParts[3]),
+                    Median = Convert.ToDouble(genuineLineParts[4]),
+                    Stdev = Convert.ToDouble(genuineLineParts[5])
+                };
+
+                var forgedLineParts = sr.ReadLine().Split(";");
+
+                forgedComparisonStat = new TrainHelper.TrainingStatistics()
+                {
+                    Min = Convert.ToDouble(forgedLineParts[1]),
+                    Max = Convert.ToDouble(forgedLineParts[2]),
+                    Average = Convert.ToDouble(forgedLineParts[3]),
+                    Median = Convert.ToDouble(forgedLineParts[4]),
+                    Stdev = Convert.ToDouble(forgedLineParts[5])
+                };
+
+            }
         }
     }
 }

@@ -11,7 +11,7 @@ namespace SVC2021.Helpers
     {
         public static readonly ITransformation Filter = new FilterPoints
         {
-            InputFeatures = new List<FeatureDescriptor<List<double>>>{ Features.X, Features.Y, Features.T },
+            InputFeatures = new List<FeatureDescriptor<List<double>>> { Features.X, Features.Y, Features.T },
             OutputFeatures = new List<FeatureDescriptor<List<double>>> { Features.X, Features.Y, Features.T },
             KeyFeatureInput = Features.Pressure,
             KeyFeatureOutput = Features.Pressure
@@ -28,6 +28,8 @@ namespace SVC2021.Helpers
         public static readonly ITransformation TranslateCogX = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.X, OutputFeature = Features.X };
         public static readonly ITransformation TranslateCogY = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.Y, OutputFeature = Features.Y };
         public static readonly ITransformation TranslateCogPressure = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.Pressure, OutputFeature = Features.Pressure };
+
+        public static readonly ITransformation Rotation = new NormalizeRotation2() { InputX = Features.X, InputY = Features.Y, OutputX = Features.X, OutputY = Features.Y };
 
         public static readonly ITransformation FilterScale1TranslateCogXYP = new SequentialTransformPipeline()
             {
@@ -47,6 +49,18 @@ namespace SVC2021.Helpers
                 Scale1Y,
                 TranslateCogX,
                 TranslateCogY,
+            };
+
+        public static readonly ITransformation RotationFilterScale1TranslateCogXYP = new SequentialTransformPipeline()
+            {
+                Rotation,
+                Filter,
+                Scale1X,
+                Scale1Y,
+                Scale1Pressure,
+                TranslateCogX,
+                TranslateCogY,
+                TranslateCogPressure
             };
     }
 }

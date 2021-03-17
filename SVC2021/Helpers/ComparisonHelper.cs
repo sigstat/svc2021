@@ -57,10 +57,10 @@ namespace SVC2021.Helpers
                                 if (string.IsNullOrWhiteSpace(line))
                                     continue;
                                 string[] parts = line.Split(' ');
-                                trainingComparisons.Add(new Comparison1v1()
+                                var refSig = "Evaluation\\" + inputDevice + "\\" + parts[0];
+                                var testSig = "Evaluation\\" + inputDevice + "\\" + parts[1];
+                                trainingComparisons.Add(new Comparison1v1(refSig, testSig)
                                 {
-                                    ReferenceSignatureFile = "Evaluation\\" + inputDevice + "\\" + parts[0],
-                                    QuestionedSignatureFile = "Evaluation\\" + inputDevice + "\\" + parts[1],
                                     // reference the signature objects if, a preloaded database is already available
                                     ReferenceSignature = db?["Evaluation\\" + inputDevice + "\\" + parts[0].ToLower()],
                                     QuestionedSignature = db?["Evaluation\\" + inputDevice + "\\" + parts[1].ToLower()],

@@ -32,10 +32,10 @@ namespace SVC2021
         static TrainHelper.TrainingStatistics forgedComparisonStat = new TrainHelper.TrainingStatistics();
         static List<FeatureDescriptor> features = new List<FeatureDescriptor>() { Features.X, Features.Y, Features.Pressure };
         static IDistance<double[][]> distanceFunction = new DtwDistance();
-        static ConditionalSequence pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) { Pipelines.FilterScale1TranslateCog };
+        static ConditionalSequence pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) { Pipelines.FilterScale1TranslateCogXYP };
 
 
-        public static void Solve(string dbPath, string comparisonsFile)
+        public static void Solve(string dbPath, string comparisonsFile, bool isTrainingReady = false)
         {
             SimpleConsoleLogger logger = new SimpleConsoleLogger();
 
@@ -45,60 +45,74 @@ namespace SVC2021
             var db = new Database(loader.EnumerateSigners());
             Debug($"Found {db.AllSigners.SelectMany(s => s.Signatures).Count()} signatures from {db.AllSigners?.Count} signers");
 
-            Debug("Loading training comparison files)");
-            var trainingComparisions = ComparisonHelper.LoadTrainingComparisonFiles(dbPath, db);
-            Debug($"Found {trainingComparisions.Count} training comparisions");
-
             Debug("Loading comparison files");
 
             var comparisons = ComparisonHelper.LoadComparisons(comparisonsFile, db).ToList();
             Debug($"Found {comparisons.Count} comparisons");
+            string fileBase = Path.GetFileNameWithoutExtension(comparisonsFile);
 
+            ProgressHelper progress;
 
-
-            // Option1: Decisions must be made exclusively on comparison signature pairs, no other information can be used
-            // Option2: Decision can take advantage of all data in the comparison set
-
-            var trainingData = new List<TrainHelper.TrainingComparisonData>();
-
-
-            var progress = ProgressHelper.StartNew(trainingComparisions.Count, 3);
-
-            foreach (var comparison in trainingComparisions)
+            if (!isTrainingReady)
             {
-                var distance = TrainHelper.Do1v1Comparision(comparison, pipeline, distanceFunction, features);
+                Debug("Loading training comparison files)");
+                var trainingComparisions = ComparisonHelper.LoadTrainingComparisonFiles(dbPath, db);
+                Debug($"Found {trainingComparisions.Count} training comparisions");
 
-                trainingData.Add(new TrainHelper.TrainingComparisonData() { Distance = distance, ExpectedPrediction = comparison.ExpectedPrediction });
-                progress.IncrementValue();
+                // Option1: Decisions must be made exclusively on comparison signature pairs, no other information can be used
+                // Option2: Decision can take advantage of all data in the comparison set
+
+                var trainingData = new List<TrainHelper.TrainingComparisonData>();
+
+
+                progress = ProgressHelper.StartNew(trainingComparisions.Count, 3);
+
+                foreach (var comparison in trainingComparisions)
+                {
+                    var distance = TrainHelper.Do1v1Comparision(comparison, pipeline, distanceFunction, features);
+
+                    trainingData.Add(new TrainHelper.TrainingComparisonData() { Distance = distance, ExpectedPrediction = comparison.ExpectedPrediction });
+                    progress.IncrementValue();
+                }
+
+                var genuineTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0).Select(td => td.Distance).ToList();
+                var forgedTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1).Select(td => td.Distance).ToList();
+                Debug($"Created {trainingData.Count} training data row: {genuineTrainingDistances.Count()} genuine and {forgedTrainingDistances.Count()} forged");
+
+                genuineComparisonStat = new TrainHelper.TrainingStatistics()
+                {
+                    Min = genuineTrainingDistances.Min(),
+                    Max = genuineTrainingDistances.Max(),
+                    Average = genuineTrainingDistances.Average(),
+                    Median = genuineTrainingDistances.Median(),
+                    Stdev = genuineTrainingDistances.StdDiviation()
+                };
+
+                forgedComparisonStat = new TrainHelper.TrainingStatistics()
+                {
+                    Min = forgedTrainingDistances.Min(),
+                    Max = forgedTrainingDistances.Max(),
+                    Average = forgedTrainingDistances.Average(),
+                    Median = forgedTrainingDistances.Median(),
+                    Stdev = forgedTrainingDistances.StdDiviation()
+                };
+
+                
+                TrainHelper.SaveTrainingStatistic(trainingData, genuineComparisonStat, forgedComparisonStat, fileBase + "TrainingStat.txt");
+
+
+                Debug($"Verifiers trained");
             }
 
-            var genuineTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0).Select(td => td.Distance).ToList();
-            var forgedTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1).Select(td => td.Distance).ToList();
-            Debug($"Created {trainingData.Count} training data row: {genuineTrainingDistances.Count()} genuine and {forgedTrainingDistances.Count()} forged");
-
-            genuineComparisonStat = new TrainHelper.TrainingStatistics()
+            else
             {
-                Min = genuineTrainingDistances.Min(),
-                Max = genuineTrainingDistances.Max(),
-                Average = genuineTrainingDistances.Average(),
-                Median = genuineTrainingDistances.Median(),
-                Stdev = genuineTrainingDistances.StdDiviation()
-            };
+                Debug($"Loading training statistics");
 
-            forgedComparisonStat = new TrainHelper.TrainingStatistics()
-            {
-                Min = forgedTrainingDistances.Min(),
-                Max = forgedTrainingDistances.Max(),
-                Average = forgedTrainingDistances.Average(),
-                Median = forgedTrainingDistances.Median(),
-                Stdev = forgedTrainingDistances.StdDiviation()
-            };
+                // fix filename !!! TASK1 --> without rotation, TASK2-->with rotation normalization
+                TrainHelper.LoadTrainingStatistic("Task1_comparisonsTrainingStat.txt", out genuineComparisonStat, out forgedComparisonStat);
 
-            string fileBase = Path.GetFileNameWithoutExtension(comparisonsFile);
-            TrainHelper.SaveTrainingStatistic(trainingData, genuineComparisonStat, forgedComparisonStat, fileBase + "TrainingStat.txt");
-
-
-            Debug($"Verifiers trained");
+                Debug($"Training statistics loaded");
+            }
 
             progress = ProgressHelper.StartNew(comparisons.Count, 3);
             Parallel.ForEach(comparisons, parallelOptions, comparison =>
@@ -157,10 +171,10 @@ namespace SVC2021
 
             if (distance < genuineComparisonStat.Min)
                 return 1;
-            if (distance > forgedComparisonStat.Min)
+            if (distance > forgedComparisonStat.Median)
                 return 0;
 
-            return (forgedComparisonStat.Min - distance) / (forgedComparisonStat.Min - genuineComparisonStat.Median);
+            return (forgedComparisonStat.Median - distance) / (forgedComparisonStat.Median - genuineComparisonStat.Min);
         }
     }
 }

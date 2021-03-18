@@ -48,6 +48,9 @@ namespace SVC2021
                 OutputImage = Features.Image
             };
 
+            if (!Directory.Exists("Images"))
+                Directory.CreateDirectory("Images");
+
             foreach (var sig in signatures.Values)
             {
                 if (sig.Signer.ID != signerID)

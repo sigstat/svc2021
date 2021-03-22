@@ -12,6 +12,7 @@ using SigStat.Common.Helpers.Serialization;
 using SigStat.Common.Logging;
 using SigStat.Common;
 using SigStat.Common.Algorithms.Distances;
+using SVC2021.Entities;
 
 namespace SVC2021.Classifiers
 {
@@ -31,6 +32,8 @@ namespace SVC2021.Classifiers
         public List<KeyValuePair<string, double[][]>> ReferenceSignatures { get; set; }
         public double GenuineThreshold;
         public double ForgeryThreshold;
+        public double CountMinThreshold;
+        public double CountMaxThreshold;
 
 
         ///// <summary>
@@ -91,14 +94,19 @@ namespace SVC2021.Classifiers
             var distances = distanceMatrix.GetValues().Where(v => v != 0);
             var min = distances.Min();
             var max = distances.Max();
+            var countMin = references.Min(r => r.Values.Length);
+            var countMax = references.Min(r => r.Values.Length);
+
 
             return new DtwMinMaxSignerModel
             {
                 SignerID = signerID,
                 ReferenceSignatures = references.Select(g => new KeyValuePair<string, double[][]>(g.ID, g.Values)).ToList(),
                 //DistanceMatrix = distanceMatrix,
-                GenuineThreshold = min,
-                ForgeryThreshold = max + (max - min)
+                GenuineThreshold = min/10,
+                ForgeryThreshold = max + (max - min)*10,
+                CountMinThreshold = min * 0.8,
+                CountMaxThreshold = max * 1.5,
             };
         }
 
@@ -116,12 +124,29 @@ namespace SVC2021.Classifiers
                 //dtwModel.DistanceMatrix[signature.ID, reference.Key] = d;
                 this.LogTrace(new ClassifierDistanceLogState(model.SignerID, signature?.Signer?.ID, reference.Key, signature.ID, d));
             }
-
             var avgDistance = distances.Average();
+
+            this.LogTrace(new ClassificationDetails()
+            {
+                SignerID = model.SignerID,
+                SignatureID = signature.ID,
+                Distance = avgDistance,
+                GenuineThreshold = dtwModel.GenuineThreshold,
+                ForgeryThreshold = dtwModel.ForgeryThreshold
+
+            });
+
+
+            //if (avgDistance < dtwModel.CountMinThreshold || avgDistance > dtwModel.CountMaxThreshold)
+                //return 0;
+
             if (avgDistance < dtwModel.GenuineThreshold)
                 return 1;
             if (avgDistance > dtwModel.ForgeryThreshold)
                 return 0;
+
+
+
 
             return (dtwModel.ForgeryThreshold - avgDistance) / (dtwModel.ForgeryThreshold - dtwModel.GenuineThreshold);
         }

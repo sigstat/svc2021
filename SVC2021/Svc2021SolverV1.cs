@@ -26,8 +26,8 @@ namespace SVC2021
         {
             SimpleConsoleLogger logger = new SimpleConsoleLogger();
             string fileBase = Path.GetFileNameWithoutExtension(comparisonsFile);
-            string predictionsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_hhmm") + "_predictions.txt";
-            string resultsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_hhmm") + "_results.xlsx";
+            string predictionsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_predictions.txt";
+            string resultsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_results.xlsx";
 
             Debug("Loading signatures");
             var loader = new Svc2021Loader(dbPath, true) { Logger = logger };

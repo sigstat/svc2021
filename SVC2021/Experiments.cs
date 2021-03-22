@@ -15,6 +15,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static SVC2021.Svc2021Loader;
+using SVC2021.Helpers;
 
 namespace SVC2021
 {
@@ -22,8 +23,14 @@ namespace SVC2021
     {
         public static void TestSigner(string comparisonsFile)
         {
-            string signerID = "0236";
-            Svc2021Loader loader = new Svc2021Loader(Program.DbPath, true) { Logger = new SimpleConsoleLogger() };
+            var reportLogger = new ReportInformationLogger();
+            var consoleLogger = new SimpleConsoleLogger();
+            var logger = new CompositeLogger() { Loggers = { consoleLogger, reportLogger } };
+
+            //string signerID = "0236";
+            string signerID = "0241";
+            //string signerID = "0232";
+            Svc2021Loader loader = new Svc2021Loader(Program.DbPath, true) { Logger = logger };
             var comparisons = ComparisonHelper.LoadComparisons(comparisonsFile)
                 .Where(s => s.ReferenceSigner == signerID && s.ReferenceInput == InputDevice.Stylus).ToList();
 
@@ -34,34 +41,22 @@ namespace SVC2021
             var signatures = loader.LoadSignatures(signatureIds)
                 .ToDictionary(s => s.ID, s => s);
 
-            Console.WriteLine($"{signatures} signatures");
+            Console.WriteLine($"Generating images");
 
             var refSignatures = comparisons
                 .Select(s => s.ReferenceSignatureFile).Distinct()
                 .Select(s => signatures[s]).ToList();
 
-            RealisticImageGenerator2 generator = new RealisticImageGenerator2(600, 400)
-            {
-                X = Features.X,
-                Y = Features.Y,
-                Pressure = Features.Pressure,
-                OutputImage = Features.Image
-            };
-
-            if (!Directory.Exists("Images"))
-                Directory.CreateDirectory("Images");
-
             foreach (var sig in signatures.Values)
             {
-                if (sig.Signer.ID != signerID)
+                //if (sig.Signer.ID != signerID)
+                //    continue;
+                string prefix = refSignatures.Contains(sig) ? "REF_" : "";
+                string filename = signerID + "\\" + prefix + Path.ChangeExtension(Path.GetFileName(sig.ID), ".png");
+                if (File.Exists(filename))
                     continue;
-                // Unfortunately, these are expected by the RealisticImageGenerator
-                sig.SetFeature(Features.PenDown, sig.Pressure.Select(p => p > 0).ToList());
-                sig.SetFeature(Features.Azimuth, sig.X.Select(s => 0d).ToList());
-                sig.SetFeature(Features.Altitude, sig.X.Select(s => 0d).ToList());
-                generator.Transform(sig);
+                //sig.SaveImage(filename);
 
-                sig.Image.Save("Images\\" + Path.ChangeExtension(Path.GetFileName(sig.ID), ".png"));
             }
 
             Console.WriteLine($"{refSignatures.Count} references, {comparisons.Count} comparisons");
@@ -70,11 +65,14 @@ namespace SVC2021
             {
                 Pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) {
                         Pipelines.Filter,
+                        //Pipelines.Rotation,
                         Pipelines.Scale1X, Pipelines.Scale1Y, Pipelines.Scale1Pressure,
                         Pipelines.TranslateCogX, Pipelines.TranslateCogY, Pipelines.TranslateCogPressure
 
                         },
-                Classifier = new DtwMinMaxClassifier() { Features = { Features.X, Features.Y, Features.Pressure } }
+                Classifier = new DtwMinMaxClassifier() { Features = { Features.X, Features.Y, Features.Pressure } },
+                Logger = logger
+            
             };
             verifier.Train(refSignatures.Cast<Signature>().ToList());
 
@@ -83,20 +81,35 @@ namespace SVC2021
                 comparison.Prediction = 1 - verifier.Test(signatures[comparison.QuestionedSignatureFile]);
             });
 
-            string file = signerID + "_" + DateTime.Now.ToString("yyyyMMdd_hhmm") + "_results.xlsx";
+            var details = new Dictionary<string, ClassificationDetails>();
+            foreach (var log in reportLogger.GetReportLogs().OfType<ClassificationDetails>())
+            {
+                details[log.SignerID + "_" + log.SignatureID] = log;
+            };
+            
+            foreach (var comparison in comparisons)
+            {
+                var detailsRecord = details[comparison.ReferenceSigner + "_" + comparison.QuestionedSignatureFile];
+                comparison.Distance = detailsRecord.Distance;
+                comparison.GenuineThreshold = detailsRecord.GenuineThreshold;
+                comparison.ForgeryThreshold = detailsRecord.ForgeryThreshold;
+
+            }
+
+
+            string file = signerID + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + "_results.xlsx";
             ComparisonHelper.SaveComparisons(comparisons, file);
 
-            if (!Directory.Exists("Images"))
-                Directory.CreateDirectory("Images");
-            //RealisticImageGenerator generator = new RealisticImageGenerator(600, 400)
-            //{ X = Features.X, Y = Features.Y, Pressure = Features.Pressure,
-            // OutputImage = Features.Image};
+            var results = comparisons.GetBenchmarkResults();
+            var model = LogAnalyzer.GetBenchmarkLogModel(reportLogger.GetReportLogs());
+            var distanceMatrix = model.SignerResults[signerID].DistanceMatrix.ToArray();
+            ComparisonHelper.WriteTable(distanceMatrix.Transpose(), "distances", file);
+            Console.WriteLine(results.GetEer());
 
-
-          
-            //Process.Start(file);
 
         }
+
+
         public static void TestLoader()
         {
             Svc2021Loader l = new Svc2021Loader(Program.DbPath, true) { Logger = new SimpleConsoleLogger() };

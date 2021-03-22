@@ -2,12 +2,14 @@
 using SigStat.Common.Helpers;
 using SVC2021.Entities;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SVC2021.Helpers
 {
@@ -103,6 +105,53 @@ namespace SVC2021.Helpers
             {
                 var sheet = package.Workbook.Worksheets.Add("Benchmark " + DateTime.Now);
                 ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                package.Save();
+
+            }
+        }
+
+        public static List<BenchmarkResult> GetBenchmarkResults(this IEnumerable<Comparison1v1> comparisons)
+        {
+            var progress = ProgressHelper.StartNew(1000, 3);
+            var results = new ConcurrentBag<BenchmarkResult>();
+            int forgeryCount = comparisons.Count(c => c.ExpectedPrediction == 1);
+            int genuineCount = comparisons.Count(c => c.ExpectedPrediction == 0);
+
+            Parallel.For(0, 1000, Program.ParallelOptions, i =>
+            {
+                BenchmarkResult benchmark = new BenchmarkResult() { ForgeryCount = forgeryCount, GenuineCount = genuineCount };
+                benchmark.Threshold = ((double)i) / 1000;
+                foreach (var comparison in comparisons)
+                {
+                    if (comparison.ExpectedPrediction == 1)
+                    {
+                        if (comparison.Prediction < benchmark.Threshold) benchmark.FalseAcceptance++;
+                    }
+                    else
+                    {
+                        if (comparison.Prediction >= benchmark.Threshold) benchmark.FalseRejection++;
+                    }
+                }
+                results.Add(benchmark);
+                progress.IncrementValue();
+            });
+
+            return results.OrderBy(r => r.Threshold).ToList();
+
+        }
+
+        public static BenchmarkResult GetEer(this IEnumerable<BenchmarkResult> benchmarks)
+        {
+            var min = benchmarks.Select(c => Math.Abs(c.FAR - c.FRR)).Min();
+            return benchmarks.First(c => Math.Abs(c.FAR - c.FRR) == min);
+        }
+
+        public static void WriteTable(object[,] items, string sheetName, string filename)
+        {
+            using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
+            {
+                var sheet = package.Workbook.Worksheets.Add(sheetName);
+                ExcelHelper.InsertTable(sheet, 1, 1, items);
                 package.Save();
 
             }

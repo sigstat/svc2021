@@ -36,6 +36,14 @@ namespace SVC2021.Entities
 
         [Display(Name = "Expected prediction")]
         public double ExpectedPrediction { get; private set; }
+
+        [Display(Name = "Distance")]
+        public double Distance { get; set; }
+        [Display(Name = "Genuine threshold")]
+        public double GenuineThreshold { get; set; }
+        [Display(Name = "Forgery threshold")]
+        public double ForgeryThreshold { get; set; }
+
         public Comparison1v1(string referenceSignatureFile, string questionedSignatureFile)
         {
             ReferenceSignatureFile = referenceSignatureFile;

@@ -15,6 +15,11 @@ namespace SVC2021.Entities
         public double FAR => ((double)FalseAcceptance) / ((double)ForgeryCount);
         public double AER => (FAR + FRR) / 2;
 
+        public override string ToString()
+        {
+            return $"Threshold: {Threshold} AER: {AER}";
+        }
+
 
     }
 }

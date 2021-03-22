@@ -16,6 +16,7 @@ namespace SVC2021.Helpers
     {
         public struct TrainingStatistics
         {
+            public string Description { get; set; }
             public double Min { get; set; }
             public double Max { get; set; }
             public double Average { get; set; }
@@ -27,6 +28,7 @@ namespace SVC2021.Helpers
         {
             public double Distance { get; set; }
             public double ExpectedPrediction { get; set; }
+            public InputDevice InputDevice { get; set; }
         }
 
 
@@ -43,46 +45,48 @@ namespace SVC2021.Helpers
             return distanceFunction.Calculate(refSig.GetAggregateFeature(features).ToArray(), testSig.GetAggregateFeature(features).ToArray());
         }
 
-        public static void SaveTrainingStatistic(List<TrainingComparisonData> trainingData, TrainingStatistics genuineStatistics, TrainingStatistics forgedStatistics, string filename)
+        public static void SaveTrainingStatistic(List<TrainingComparisonData> trainingData, List<TrainingStatistics> statistics, string filename)
         {
             using (var sw = new StreamWriter(filename, false, Encoding.ASCII))
             {
-                sw.WriteLine($"Genuine;{genuineStatistics.Min};{genuineStatistics.Max};{genuineStatistics.Average};{genuineStatistics.Median};{genuineStatistics.Stdev}");
-                sw.WriteLine($"Forged;{forgedStatistics.Min};{forgedStatistics.Max};{forgedStatistics.Average};{forgedStatistics.Median};{forgedStatistics.Stdev}");
+                sw.WriteLine("Description;Min;Max;Average;Median;Stdev");
+                foreach (var stat in statistics)
+                {
+                    sw.WriteLine($"{stat.Description};{stat.Min};{stat.Max};{stat.Average};{stat.Median};{stat.Stdev}");
+                }
+
+                sw.WriteLine("-1");
 
                 foreach (var data in trainingData)
                 {
-                    sw.WriteLine($"{data.Distance};{data.ExpectedPrediction}");
+                    sw.WriteLine($"{data.Distance};{data.ExpectedPrediction};{data.InputDevice}");
                 }
             }
 
         }
 
-        public static void LoadTrainingStatistic(string filename, out TrainingStatistics genuineComparisonStat, out TrainingStatistics forgedComparisonStat)
+        public static void LoadTrainingStatistic(string filename, out List<TrainingStatistics> comparisionStatistics)
         {
             using (var sr = new StreamReader(filename, Encoding.ASCII, false))
             {
-                var genuineLineParts = sr.ReadLine().Split(";");
-
-                genuineComparisonStat = new TrainHelper.TrainingStatistics()
+                comparisionStatistics = new List<TrainingStatistics>();
+                var line = sr.ReadLine();
+                line = sr.ReadLine();
+                while (line != "-1")
                 {
-                    Min = Convert.ToDouble(genuineLineParts[1]),
-                    Max = Convert.ToDouble(genuineLineParts[2]),
-                    Average = Convert.ToDouble(genuineLineParts[3]),
-                    Median = Convert.ToDouble(genuineLineParts[4]),
-                    Stdev = Convert.ToDouble(genuineLineParts[5])
-                };
+                    var lineParts = line.Split(";");
+                    comparisionStatistics.Add(new TrainingStatistics()
+                    {
+                        Description = lineParts[0],
+                        Min = Convert.ToDouble(lineParts[1]),
+                        Max = Convert.ToDouble(lineParts[2]),
+                        Average = Convert.ToDouble(lineParts[3]),
+                        Median = Convert.ToDouble(lineParts[4]),
+                        Stdev = Convert.ToDouble(lineParts[5])
+                    });
 
-                var forgedLineParts = sr.ReadLine().Split(";");
-
-                forgedComparisonStat = new TrainHelper.TrainingStatistics()
-                {
-                    Min = Convert.ToDouble(forgedLineParts[1]),
-                    Max = Convert.ToDouble(forgedLineParts[2]),
-                    Average = Convert.ToDouble(forgedLineParts[3]),
-                    Median = Convert.ToDouble(forgedLineParts[4]),
-                    Stdev = Convert.ToDouble(forgedLineParts[5])
-                };
+                    line = sr.ReadLine();
+                }
 
             }
         }

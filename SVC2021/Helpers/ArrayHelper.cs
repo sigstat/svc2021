@@ -23,5 +23,21 @@ namespace SVC2021.Helpers
 
             return result;
         }
+
+        public static T[,] Cast<S,T>(this S[,] sourceArray) where S:T
+        {
+            var rows = sourceArray.GetLength(0);
+            var columns = sourceArray.GetLength(1);
+
+            var result = new T[rows, columns];
+            for (var c = 0; c < columns; c++)
+            {
+                for (var r = 0; r < rows; r++)
+                {
+                    result[r, c] = (T)sourceArray[r, c];
+                }
+            }
+            return result;
+        }
     }
 }

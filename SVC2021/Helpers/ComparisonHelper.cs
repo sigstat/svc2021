@@ -15,7 +15,7 @@ namespace SVC2021.Helpers
 {
     static class ComparisonHelper
     {
-        static readonly IFormatProvider numberFormat = new CultureInfo("EN-US").NumberFormat;
+        public static readonly IFormatProvider NumberFormat = new CultureInfo("EN-US").NumberFormat;
 
         public static IEnumerable<Comparison1v1> LoadComparisons(string fileName, Database db = null)
         {
@@ -83,7 +83,7 @@ namespace SVC2021.Helpers
             {
                 foreach (var comparison in comparisons)
                 {
-                    sw.WriteLine(comparison.Prediction.ToString("n3", numberFormat));
+                    sw.WriteLine(comparison.Prediction.ToString("n3", NumberFormat));
                 }
             }
         }
@@ -155,6 +155,19 @@ namespace SVC2021.Helpers
                 package.Save();
 
             }
+        }
+
+        public static List<Neighborhood> LoadNeighborhoods(string neighborsFile)
+        {
+            return File.ReadAllLines(neighborsFile)
+                .Select(l => l.Split(" "))
+                .Select(parts => new Neighborhood()
+                {
+                    PrimarySignatureId = parts[0],
+                    NeighborSignatureIds = parts[1..3],
+                    NeighborDistances = parts[4..6].Select(s => double.Parse(s, NumberFormat)).ToArray(),
+                })
+                .ToList();
         }
     }
 }

@@ -15,6 +15,33 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Data\Competition\SVC2021_Task1_comparisons.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Competition\SVC2021_Task2_comparisons.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Competition\SVC2021_Task3_comparisons.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Neighbors\SVC2021_Task1_comparisons_matrix.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Neighbors\SVC2021_Task1_comparisons_neighbors.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Neighbors\SVC2021_Task2_comparisons_matrix.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Neighbors\SVC2021_Task2_comparisons_neighbors.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Neighbors\SVC2021_Task3_comparisons_matrix.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Neighbors\SVC2021_Task3_comparisons_neighbors.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Data\Signatures\u0114_s_u1015s0001_sg0004.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

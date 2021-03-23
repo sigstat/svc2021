@@ -93,18 +93,18 @@ namespace SVC2021.Helpers
             using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
             {
                 var sheet = package.Workbook.Worksheets.Add("Comparisons " + DateTime.Now);
-                ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                ExcelHelper.InsertTable(sheet, 1, 1, comparisons, comparisons.First().GetHeaders());
                 package.Save();
 
             }
         }
 
-        public static void SaveBenchmarkResults(this IEnumerable<BenchmarkResult> comparisons, string filename)
+        public static void SaveBenchmarkResults(this IEnumerable<BenchmarkResult> benchmarkResults, string filename)
         {
             using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
             {
                 var sheet = package.Workbook.Worksheets.Add("Benchmark " + DateTime.Now);
-                ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                ExcelHelper.InsertTable(sheet, 1, 1, benchmarkResults);
                 package.Save();
 
             }

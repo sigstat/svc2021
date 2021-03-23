@@ -90,9 +90,9 @@ namespace SVC2021
             foreach (var comparison in comparisons)
             {
                 var detailsRecord = details[comparison.ReferenceSigner + "_" + comparison.QuestionedSignatureFile];
-                comparison.Distance = detailsRecord.Distance;
-                comparison.GenuineThreshold = detailsRecord.GenuineThreshold;
-                comparison.ForgeryThreshold = detailsRecord.ForgeryThreshold;
+                comparison.Add(Stats.Distance, detailsRecord.Distance);
+                comparison.Add(Stats.GenuineThreshold,detailsRecord.GenuineThreshold);
+                comparison.Add(Stats.ForgeryThreshold, detailsRecord.ForgeryThreshold);
 
             }
 

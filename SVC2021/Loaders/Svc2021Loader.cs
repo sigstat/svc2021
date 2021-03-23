@@ -234,7 +234,7 @@ namespace SVC2021
             {
                 //cut names if the files are in directories
                 var signatureGroups = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
-                using (var progress = ProgressHelper.StartNew(signatureGroups.Count(), 1))
+                using (var progress = ProgressHelper.StartNew(signatureGroups.Count(), 10))
                 {
                     foreach (var group in signatureGroups)
                     {

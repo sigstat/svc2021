@@ -40,9 +40,9 @@ namespace SVC2021
         {
             //Experiments.TestSigner(ComparisonsFile1);
 
-            Svc2021SolverVC.Solve(DbPath, ComparisonsFile1, true, false, true);
-            Svc2021SolverVC.Solve(DbPath, ComparisonsFile2, true, false, true);
-            Svc2021SolverVC.Solve(DbPath, ComparisonsFile3, true, false, true);
+            Svc2021SolverV2.Solve(DbPath, ComparisonsFile1);
+            //Svc2021SolverV2.Solve(DbPath, ComparisonsFile2);
+            //Svc2021SolverV2.Solve(DbPath, ComparisonsFile3);
 
         }
 

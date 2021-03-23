@@ -1,15 +1,21 @@
 ﻿using SigStat.Common;
 using SigStat.Common.Helpers.Excel;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using static SVC2021.Svc2021Loader;
 
 namespace SVC2021.Entities
 {
-    class Comparison1v1
+
+    class Comparison1v1 : IEnumerable<object>
     {
+        static PropertyInfo[] SerializableProperties = typeof(Comparison1v1).GetProperties().Where(p => p.GetCustomAttribute<ExcelIgnoreAttribute>() == null).ToArray();
+
         [Display(Name = "Reference file")]
         public string ReferenceSignatureFile { get; private set; }
         [ExcelIgnore]
@@ -37,12 +43,10 @@ namespace SVC2021.Entities
         [Display(Name = "Expected prediction")]
         public double ExpectedPrediction { get; private set; }
 
-        [Display(Name = "Distance")]
-        public double Distance { get; set; }
-        [Display(Name = "Genuine threshold")]
-        public double GenuineThreshold { get; set; }
-        [Display(Name = "Forgery threshold")]
-        public double ForgeryThreshold { get; set; }
+        [ExcelIgnore]
+        public List<KeyValuePair<string, double>> Metadata { get; set; } = new List<KeyValuePair<string, double>>();
+
+
 
         public Comparison1v1(string referenceSignatureFile, string questionedSignatureFile)
         {
@@ -65,6 +69,40 @@ namespace SVC2021.Entities
 
             QuestionedSigner = qf.SignerID;
             QuestionedInput = qf.InputDevice;
+        }
+
+
+        public void Add(string key,double value)
+        {
+            Metadata.Add(new KeyValuePair<string, double>(key, value));
+        }
+
+        public IEnumerable<string> GetHeaders()
+        {
+            return SerializableProperties.Select(p => p.Name).Concat(Metadata.Select(m => m.Key));
+        }
+
+        public IEnumerator<object> GetEnumerator()
+        {
+            return GetData().GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetData().GetEnumerator();
+        }
+
+        IEnumerable<object> GetData()
+        {
+            foreach (var item in SerializableProperties)
+            {
+                yield return item.GetValue(this, null);
+            }
+            foreach (var kvp in Metadata)
+            {
+                yield return kvp.Value;
+            }
+
         }
     }
 }

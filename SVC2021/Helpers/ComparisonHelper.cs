@@ -164,8 +164,8 @@ namespace SVC2021.Helpers
                 .Select(parts => new Neighborhood()
                 {
                     PrimarySignatureId = parts[0],
-                    NeighborSignatureIds = parts[1..3],
-                    NeighborDistances = parts[4..6].Select(s => double.Parse(s, NumberFormat)).ToArray(),
+                    NeighborSignatureIds = parts[1..4],
+                    NeighborDistances = parts[4..].Select(s => double.Parse(s, NumberFormat)).ToArray(),
                 })
                 .ToList();
         }

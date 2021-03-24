@@ -25,14 +25,13 @@ namespace SVC2021
     {
         static Random rnd = new Random();
 
-        public static void GenerateTrainingComparisons(string dbPath)
+        public static string GenerateTrainingComparisons(string dbPath, Split split, InputDevice input)
         {
-            File.WriteAllLines("finger_comparisons.txt", EnumerateComparisons(dbPath, InputDevice.Finger).Distinct());
-            File.WriteAllLines("stylus_comparisons.txt", EnumerateComparisons(dbPath, InputDevice.Stylus).Distinct());
-
-
+            string filename = $"{split}_{input}_comparisons.txt";
+            File.WriteAllLines(filename, EnumerateComparisons(dbPath, input, split).Distinct());
+            return filename;
         }
-        public static IEnumerable<string> EnumerateComparisons(string dbPath, InputDevice input)
+        public static IEnumerable<string> EnumerateComparisons(string dbPath, InputDevice input, Split split)
         {
             Console.WriteLine("Generating comparisons for " + input);
             int randomCount = 40;
@@ -45,6 +44,10 @@ namespace SVC2021
             foreach (var signer in signers)
             {
                 signer.Signatures.RemoveAll(s => s.GetFeature(Svc2021.InputDevice) != input);
+            }
+            foreach (var signer in signers)
+            {
+                signer.Signatures.RemoveAll(s => !split.HasFlag(s.GetFeature(Svc2021.Split)) );
             }
 
             signers = signers.Where(s => s.Signatures.Count > 0).ToList();

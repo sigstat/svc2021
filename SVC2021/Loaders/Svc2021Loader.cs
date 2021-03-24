@@ -32,10 +32,12 @@ namespace SVC2021
         Stylus
     }
 
+    [Flags]
     public enum Split
     {
-        Development,
-        Evaluation
+        Unkonwn = 0,
+        Development = 1,
+        Evaluation = 2
     }
 
 

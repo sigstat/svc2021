@@ -49,8 +49,9 @@ namespace SVC2021
 
         static void Main(string[] args)
         {
-
-            //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile3);
+            //Experiments.GenerateTrainingComparisons(DeepSignDbPath);
+            
+            Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile3);
           //  Experiments.LoadAndGroupSigners(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1);
 
             Svc2021SolverVM.Solve(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1, 5);
@@ -58,6 +59,9 @@ namespace SVC2021
             Svc2021SolverVM.Solve(Svc2021EvalDbPath, SvcComparisonsFile3, SvcNeighborFile3, 5);
 
             //Svc2021SolverV2.Solve(DeepSignDbPath, ComparisonsFile1);
+            //Experiments.LoadAndGroupSigners(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1);
+            Svc2021SolverV2.Solve(DeepSignDbPath, "finger_comparisons.txt");
+            Svc2021SolverV2.Solve(DeepSignDbPath, "stylus_comparisons.txt");
             //Svc2021SolverV2.Solve(DbPath, ComparisonsFile2);
             //Svc2021SolverV2.Solve(DbPath, ComparisonsFile3);
 

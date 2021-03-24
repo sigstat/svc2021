@@ -23,6 +23,74 @@ namespace SVC2021
 {
     static class Experiments
     {
+        static Random rnd = new Random();
+
+        public static void GenerateTrainingComparisons(string dbPath)
+        {
+            File.WriteAllLines("finger_comparisons.txt", EnumerateComparisons(dbPath, InputDevice.Finger).Distinct());
+            File.WriteAllLines("stylus_comparisons.txt", EnumerateComparisons(dbPath, InputDevice.Stylus).Distinct());
+
+
+        }
+        public static IEnumerable<string> EnumerateComparisons(string dbPath, InputDevice input)
+        {
+            Console.WriteLine("Generating comparisons for "+input);
+            int randomCount = 40;
+            int genuineCount = 20;
+            int forgeryCount = 20;
+
+            var logger = new SimpleConsoleLogger();
+            Svc2021Loader loader = new Svc2021Loader(dbPath, true) { Logger = logger };
+            var signers = loader.EnumerateSigners().ToList();
+            foreach (var signer in signers)
+            {
+                signer.Signatures.RemoveAll(s => s.GetFeature(Svc2021.InputDevice) != input);
+            }
+
+            signers = signers.Where(s => s.Signatures.Count > 0).ToList();
+            Console.WriteLine("Found "+signers.Count+" signers");
+
+            var allSignatures = signers.SelectMany(s => s.Signatures).ToList();
+            var step = allSignatures.Count / randomCount;
+
+            Console.WriteLine("Found "+allSignatures.Count +" signatures");
+
+            foreach (var signer in signers)
+            {
+                var genuineSignatures = signer.Signatures.Where(s => s.Origin == Origin.Genuine).ToList();
+                var forgedSignatures = signer.Signatures.Where(s => s.Origin == Origin.Forged).ToList();
+                var randomForgeries = Enumerable.Range(0, randomCount).Select(i=>allSignatures[i* step + rnd.Next(step)]);
+
+                genuineSignatures.LimitRandomly(genuineCount);
+                forgedSignatures.LimitRandomly(forgeryCount);
+                for (int i = 0; i < genuineSignatures.Count; i++)
+                {
+                    for (int j = i+1; j < genuineSignatures.Count; j++)
+                    {
+                        yield return genuineSignatures[i].ID+" "+genuineSignatures[j].ID;
+                    }
+                }
+                for (int i = 0; i < genuineSignatures.Count; i++)
+                {
+                    for (int j = 0; j < forgedSignatures.Count; j++)
+                    {
+                        yield return genuineSignatures[i].ID + " " + forgedSignatures[j].ID;
+                    }
+                }
+
+                foreach (var sig1 in genuineSignatures)
+                {
+                    foreach (var sig2 in randomForgeries)
+                    {
+                        if (sig2.Signer.ID == sig1.Signer.ID) continue;
+                        yield return sig1.ID + " " + sig2.ID;
+                    }
+                }
+
+               
+            }
+
+        }
         public static void TestSigner(string dbPath, string comparisonsFile)
         {
             var reportLogger = new ReportInformationLogger();
@@ -184,10 +252,10 @@ namespace SVC2021
                         distances[i, j] = 0;
                     }
                     // We only compare similar signatures here
-                    else if (distinctReferenceSignatures[i].InputDevice != distinctReferenceSignatures[j].InputDevice)
-                    {
-                        distances[i, j] = 0;
-                    }
+               //     else if (distinctReferenceSignatures[i].InputDevice != distinctReferenceSignatures[j].InputDevice)
+                //    {
+               //         distances[i, j] = 0;
+               //     }
                     else
                     {
                         distances[i, j] = dtw.Calculate(sigI.Values, sigJ.Values);

@@ -21,11 +21,13 @@ namespace SVC2021
         eBioSignDS1,
         eBioSignDS2,
         BiosecurID,
-        BiosecureDS2
+        BiosecureDS2,
+        EvalDB
     }
 
     public enum InputDevice
     {
+        Unkown,
         Finger,
         Stylus
     }
@@ -106,8 +108,21 @@ namespace SVC2021
 
             public SignatureFile(string file)
             {
-                File = file;
+                this.File = file;
                 string[] pathParts = file.Contains("/") ? file.Split('/') : file.Split('\\');
+
+                //EvalDB
+                if (file.Contains("signature"))
+                {
+                    this.SignatureID = string.Join('\\', pathParts[^1]);
+                    this.SignerID = string.Join('\\', pathParts[^1]);
+                    this.DB = DB.EvalDB;
+                    this.Split = Split.Evaluation;
+                    this.Origin = Origin.Unknown;
+                    this.InputDevice = InputDevice.Unkown;
+                    return;
+                }
+
 
                 this.Split = Enum.Parse<Split>(pathParts[^3], true);
                 this.InputDevice = Enum.Parse<InputDevice>(pathParts[^2], true);
@@ -232,9 +247,18 @@ namespace SVC2021
             this.LogInformation("Enumerating signers started.");
             using (ZipArchive zip = ZipFile.OpenRead(DatabasePath))
             {
-                //cut names if the files are in directories
-                var signatureGroups = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
-                using (var progress = ProgressHelper.StartNew(signatureGroups.Count(), 1))
+                IEnumerable<IGrouping<string, SignatureFile>> signatureGroups = null;
+                if (DatabasePath.EndsWith("DeepSignDB.zip"))
+                {
+                    //cut names if the files are in directories
+                    signatureGroups = zip.Entries.Where(f => f.FullName.StartsWith("DeepSignDB") && f.Name.EndsWith(".txt")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
+                }
+                else if (DatabasePath.EndsWith("SVC2021_EvalDB.zip"))
+                {
+                    signatureGroups = zip.Entries.Where(f => f.Name.EndsWith(".txt")).Select(f => new SignatureFile(f.FullName)).GroupBy(sf => sf.SignerID);
+
+                }
+                using (var progress = ProgressHelper.StartNew(signatureGroups.Count(), 10))
                 {
                     foreach (var group in signatureGroups)
                     {
@@ -270,9 +294,12 @@ namespace SVC2021
                         yield return signer;
                     }
                 }
+
+                this.LogInformation("Enumerating signers finished.");
             }
-            this.LogInformation("Enumerating signers finished.");
         }
+
+
 
         //public IEnumerable<Signer> ListSignersFast(Predicate<Signer> signerFilter)
         //{
@@ -408,6 +435,7 @@ namespace SVC2021
                 DB.BiosecureDS2 => 6,
                 DB.eBioSignDS1 => 3,
                 DB.eBioSignDS2 => 3,
+                DB.EvalDB => 3,
                 _ => throw new NotSupportedException($"Unsupported DB: {signature.DB}")
             };
 
@@ -448,16 +476,31 @@ namespace SVC2021
                 }
             }
 
-            // Remove noise (points with 0 pressure) from the beginning of the signature
-            while (lines.Count > 0 && lines[0].Pressure == 0)
+            // We need to manually calculate the input type for the Eval DB
+            if (signature.InputDevice == InputDevice.Unkown)
             {
-                lines.RemoveAt(0);
+                if (lines.TrueForAll(l => l.Pressure == 0))
+                    signature.InputDevice = InputDevice.Finger;
+                else
+                    signature.InputDevice = InputDevice.Stylus;
             }
-            // Remove noise (points with 0 pressure) from the end of the signature
-            while (lines.Count > 0 && lines[lines.Count - 1].Pressure == 0)
+
+            if (signature.InputDevice == InputDevice.Stylus)
             {
-                lines.RemoveAt(lines.Count - 1);
+                // Remove noise (points with 0 pressure) from the beginning of the signature
+                while (lines.Count > 0 && lines[0].Pressure == 0)
+                {
+                    lines.RemoveAt(0);
+                }
+                // Remove noise (points with 0 pressure) from the end of the signature
+                while (lines.Count > 0 && lines[lines.Count - 1].Pressure == 0)
+                {
+                    lines.RemoveAt(lines.Count - 1);
+                }
             }
+
+            if (lines.Count == 0)
+                throw new Exception("No lines were loaded for signature: " + signature.ID);
 
 
             // Task1, Task2

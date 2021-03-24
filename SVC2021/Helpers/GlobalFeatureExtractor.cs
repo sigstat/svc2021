@@ -11,7 +11,7 @@ namespace SVC2021.Helpers
     {
         public static double CalculateDuration(Svc2021Signature signature)
         {
-            var timeStamps = signature.GetFeature(Features.T);
+            var timeStamps = signature.T;
 
             double total = timeStamps.Max() - timeStamps.Min();
             signature.SetFeature("Duration", total);

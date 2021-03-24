@@ -15,7 +15,7 @@ namespace SVC2021.Helpers
 {
     static class ComparisonHelper
     {
-        static readonly IFormatProvider numberFormat = new CultureInfo("EN-US").NumberFormat;
+        public static readonly IFormatProvider NumberFormat = new CultureInfo("EN-US").NumberFormat;
 
         public static IEnumerable<Comparison1v1> LoadComparisons(string fileName, Database db = null)
         {
@@ -83,7 +83,7 @@ namespace SVC2021.Helpers
             {
                 foreach (var comparison in comparisons)
                 {
-                    sw.WriteLine(comparison.Prediction.ToString("n3", numberFormat));
+                    sw.WriteLine(comparison.Prediction.ToString("n3", NumberFormat));
                 }
             }
         }
@@ -93,18 +93,18 @@ namespace SVC2021.Helpers
             using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
             {
                 var sheet = package.Workbook.Worksheets.Add("Comparisons " + DateTime.Now);
-                ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                ExcelHelper.InsertTable(sheet, 1, 1, comparisons, comparisons.First().GetHeaders());
                 package.Save();
 
             }
         }
 
-        public static void SaveBenchmarkResults(this IEnumerable<BenchmarkResult> comparisons, string filename)
+        public static void SaveBenchmarkResults(this IEnumerable<BenchmarkResult> benchmarkResults, string filename)
         {
             using (ExcelPackage package = new ExcelPackage(new FileInfo(filename)))
             {
                 var sheet = package.Workbook.Worksheets.Add("Benchmark " + DateTime.Now);
-                ExcelHelper.InsertTable(sheet, 1, 1, comparisons);
+                ExcelHelper.InsertTable(sheet, 1, 1, benchmarkResults);
                 package.Save();
 
             }
@@ -155,6 +155,19 @@ namespace SVC2021.Helpers
                 package.Save();
 
             }
+        }
+
+        public static List<Neighborhood> LoadNeighborhoods(string neighborsFile)
+        {
+            return File.ReadAllLines(neighborsFile)
+                .Select(l => l.Split(" "))
+                .Select(parts => new Neighborhood()
+                {
+                    PrimarySignatureId = parts[0],
+                    NeighborSignatureIds = parts[1..4],
+                    NeighborDistances = parts[4..].Select(s => double.Parse(s, NumberFormat)).ToArray(),
+                })
+                .ToList();
         }
     }
 }

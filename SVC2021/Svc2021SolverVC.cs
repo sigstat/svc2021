@@ -29,7 +29,7 @@ namespace SVC2021
         static ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = 1 };
 
         static List<TrainHelper.TrainingStatistics> trainingComparisonStatistics = new List<TrainHelper.TrainingStatistics>();
-        static double expectableDifference = 0.25;
+        static double expectableDifference = 0.55;
         static List<FeatureDescriptor> features = new List<FeatureDescriptor>() { Features.X, Features.Y, Features.Pressure };
         static IDistance<double[][]> distanceFunction = new DtwDistance();
         static ConditionalSequence pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) { Pipelines.FilterScale1TranslateCogXYP };
@@ -70,6 +70,9 @@ namespace SVC2021
                 foreach (var comparison in trainingComparisions)
                 {
                     var distance = TrainHelper.Do1v1Comparision(comparison, pipeline, distanceFunction, features);
+                    var timeDiff = TrainHelper.CalculateDifference(comparison, Features.T);
+                    var stdDevXDiff = TrainHelper.CalculateDifference(comparison, Features.X);
+                    var stdDevYDiff = TrainHelper.CalculateDifference(comparison, Features.Y);
 
                     InputDevice inputDevice = 0;
                     if (comparison.ReferenceInput != comparison.QuestionedInput)
@@ -79,19 +82,22 @@ namespace SVC2021
 
                     trainingData.Add(new TrainHelper.TrainingComparisonData()
                     {
-                        Distance = distance,
+                        DtwDistance = distance,
                         ExpectedPrediction = comparison.ExpectedPrediction,
-                        InputDevice = inputDevice
-                    }); ;
+                        InputDevice = inputDevice,
+                        DurationDifference = timeDiff,
+                        StdXDifference = stdDevXDiff,
+                        StdYDifference = stdDevYDiff
+                    });
                     progress.IncrementValue();
                 }
 
 
 
-                if (!isGroupedByInputDevice)
+                if (!isGroupedByInputDevice) /////// No diff calculation !!!!
                 {
-                    var genuineTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0).Select(td => td.Distance).ToList();
-                    var forgedTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1).Select(td => td.Distance).ToList();
+                    var genuineTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0).Select(td => td.DtwDistance).ToList();
+                    var forgedTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1).Select(td => td.DtwDistance).ToList();
                     Debug($"Created {trainingData.Count} training data row: {genuineTrainingDistances.Count()} genuine and {forgedTrainingDistances.Count()} forged");
 
                     trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
@@ -118,59 +124,52 @@ namespace SVC2021
                 }
                 else
                 {
-                    var genuineStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Stylus).Select(td => td.Distance).ToList();
-                    var forgedStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Stylus).Select(td => td.Distance).ToList();
+                    //DTW distance
+                    var genuineStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Stylus).Select(td => td.DtwDistance).ToList();
+                    var forgedStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Stylus).Select(td => td.DtwDistance).ToList();
 
-                    var genuineFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Finger).Select(td => td.Distance).ToList();
-                    var forgedFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Finger).Select(td => td.Distance).ToList();
+                    var genuineFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Finger).Select(td => td.DtwDistance).ToList();
+                    var forgedFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Finger).Select(td => td.DtwDistance).ToList();
+
 
                     Debug($"Created {trainingData.Count} training data row: \n" +
                         $"Stylus: {genuineStylusTrainingDistances.Count()} genuine and {forgedStylusTrainingDistances.Count()} forged \n" +
                         $"Finger: {genuineFingerTrainingDistances.Count()} genuine and {forgedFingerTrainingDistances.Count()} forged ");
 
-                    trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
-                    {
-                        Description = "GenuineStylusComparisonStat",
-                        Min = genuineStylusTrainingDistances.Min(),
-                        Max = genuineStylusTrainingDistances.Max(),
-                        Average = genuineStylusTrainingDistances.Average(),
-                        Median = genuineStylusTrainingDistances.Median(),
-                        Stdev = genuineStylusTrainingDistances.StdDiviation()
-                    });
+                    trainingComparisonStatistics.AddRange(TrainHelper.CalculateTrainingStatistics("", genuineStylusTrainingDistances, forgedStylusTrainingDistances, genuineFingerTrainingDistances, forgedFingerTrainingDistances));
 
-                    trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
-                    {
-                        Description = "ForgedStylusComparisonStat",
-                        Min = forgedStylusTrainingDistances.Min(),
-                        Max = forgedStylusTrainingDistances.Max(),
-                        Average = forgedStylusTrainingDistances.Average(),
-                        Median = forgedStylusTrainingDistances.Median(),
-                        Stdev = forgedStylusTrainingDistances.StdDiviation()
-                    });
+                    // Duration
+                    genuineStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Stylus).Select(td => td.DurationDifference).ToList();
+                    forgedStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Stylus).Select(td => td.DurationDifference).ToList();
 
-                    trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
-                    {
-                        Description = "GenuineFingerComparisonStat",
-                        Min = genuineFingerTrainingDistances.Min(),
-                        Max = genuineFingerTrainingDistances.Max(),
-                        Average = genuineFingerTrainingDistances.Average(),
-                        Median = genuineFingerTrainingDistances.Median(),
-                        Stdev = genuineFingerTrainingDistances.StdDiviation()
-                    });
+                    genuineFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Finger).Select(td => td.DurationDifference).ToList();
+                    forgedFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Finger).Select(td => td.DurationDifference).ToList();
 
-                    trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
-                    {
-                        Description = "ForgedFingerComparisonStat",
-                        Min = forgedFingerTrainingDistances.Min(),
-                        Max = forgedFingerTrainingDistances.Max(),
-                        Average = forgedFingerTrainingDistances.Average(),
-                        Median = forgedFingerTrainingDistances.Median(),
-                        Stdev = forgedFingerTrainingDistances.StdDiviation()
-                    });
+                    trainingComparisonStatistics.AddRange(TrainHelper.CalculateTrainingStatistics("T", genuineStylusTrainingDistances, forgedStylusTrainingDistances, genuineFingerTrainingDistances, forgedFingerTrainingDistances));
+
+
+                    // X
+                    genuineStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Stylus).Select(td => td.StdXDifference).ToList();
+                    forgedStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Stylus).Select(td => td.StdXDifference).ToList();
+
+                    genuineFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Finger).Select(td => td.StdXDifference).ToList();
+                    forgedFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Finger).Select(td => td.StdXDifference).ToList();
+
+                    trainingComparisonStatistics.AddRange(TrainHelper.CalculateTrainingStatistics("X", genuineStylusTrainingDistances, forgedStylusTrainingDistances, genuineFingerTrainingDistances, forgedFingerTrainingDistances));
+
+
+                    // Y
+                    genuineStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Stylus).Select(td => td.StdYDifference).ToList();
+                    forgedStylusTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Stylus).Select(td => td.StdYDifference).ToList();
+
+                    genuineFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 0 & td.InputDevice == InputDevice.Finger).Select(td => td.StdYDifference).ToList();
+                    forgedFingerTrainingDistances = trainingData.Where(td => td.ExpectedPrediction == 1 & td.InputDevice == InputDevice.Finger).Select(td => td.StdYDifference).ToList();
+
+                    trainingComparisonStatistics.AddRange(TrainHelper.CalculateTrainingStatistics("Y", genuineStylusTrainingDistances, forgedStylusTrainingDistances, genuineFingerTrainingDistances, forgedFingerTrainingDistances));
 
                 }
 
-                TrainHelper.SaveTrainingStatistic(trainingData, trainingComparisonStatistics, fileBase + "TrainingStat.csv");
+                TrainHelper.SaveTrainingStatistic(trainingData, trainingComparisonStatistics, /*fileBase + */"TrainingStat.csv");
 
                 Debug($"Verifiers trained");
             }
@@ -180,7 +179,7 @@ namespace SVC2021
                 Debug($"Loading training statistics");
 
                 // txt filename !!! TASK1 --> without rotation, TASK2-->with rotation normalization
-                TrainHelper.LoadTrainingStatistic(fileBase + "TrainingStat.csv", out trainingComparisonStatistics);
+                TrainHelper.LoadTrainingStatistic(/*fileBase +*/ "TrainingStat.csv", out trainingComparisonStatistics);
 
                 Debug($"Training statistics loaded");
             }
@@ -248,27 +247,44 @@ namespace SVC2021
                 var xDevDecision = TestByFeatureDev(comparison, Features.X);
                 var yDevDecision = TestByFeatureDev(comparison, Features.Y);
 
+
                 return (5 * dtwDecision + 2 * timeDecision + xDevDecision + yDevDecision) / 9;
                 //return (timeDecision + xDevDecision + yDevDecision) / 3;
             }
         }
-
         private static double TestByTime(Comparison1v1 comparison)
         {
             var refTime = GlobalFeatureExtractor.CalculateDuration(comparison.ReferenceSignature);
-            var testTime =  GlobalFeatureExtractor.CalculateDuration(comparison.QuestionedSignature);
+            var testTime = GlobalFeatureExtractor.CalculateDuration(comparison.QuestionedSignature);
 
             var diff = (Math.Abs(refTime - testTime) / refTime);
 
             if (diff > expectableDifference) return 0;
 
             return ((-1) / expectableDifference) * diff + 1;
-        } 
-        
+        }
+
+        private static double Test2(Comparison1v1 comparison, bool isGroupedByInputDevice, bool onlyDtw)
+        {
+            if (onlyDtw)
+                return TestByDtw(comparison, isGroupedByInputDevice);
+            else
+            {
+                var dtwDecision = TestByDtw(comparison, isGroupedByInputDevice);
+                //var timeDecision = TestByDtw(comparison, isGroupedByInputDevice, "T");
+                var xDevDecision = TestByDtw(comparison, isGroupedByInputDevice, "X");
+                var yDevDecision = TestByDtw(comparison, isGroupedByInputDevice, "Y");
+
+                return (2 * dtwDecision /*+ timeDecision*/ + xDevDecision + yDevDecision) / 4;
+            }
+        }
+
+
+
         private static double TestByFeatureDev(Comparison1v1 comparison, FeatureDescriptor<List<double>> feature)
         {
             var refDev = GlobalFeatureExtractor.CalculateStandardDeviationOfFeature(comparison.ReferenceSignature, feature);
-            var testDev =  GlobalFeatureExtractor.CalculateStandardDeviationOfFeature(comparison.QuestionedSignature, feature);
+            var testDev = GlobalFeatureExtractor.CalculateStandardDeviationOfFeature(comparison.QuestionedSignature, feature);
 
             var diff = (Math.Abs(refDev - testDev) / refDev);
 
@@ -277,12 +293,12 @@ namespace SVC2021
             return ((-1) / expectableDifference) * diff + 1;
         }
 
-        private static double TestByDtw(Comparison1v1 comparison, bool isGroupedByInputDecive)
+        private static double TestByDtw(Comparison1v1 comparison, bool isGroupedByInputDecive, string feature = "")
         {
             if (!isGroupedByInputDecive)
             {
-                var genuineComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "GenuineComparisionStat");
-                var forgedComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "ForgedComparisionStat");
+                var genuineComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "GenuineComparisonStat" + feature);
+                var forgedComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "ForgedComparisonStat" + feature);
                 var distance = TrainHelper.Do1v1Comparision(comparison, pipeline, distanceFunction, features);
 
                 return CalculateDecisionByDtwDistance(distance, genuineComparisonStat, forgedComparisonStat);
@@ -296,8 +312,8 @@ namespace SVC2021
                 }
                 else
                 {
-                    var genuineComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "Genuine" + comparison.ReferenceInput + "ComparisonStat");
-                    var forgedComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "Forged" + comparison.ReferenceInput + "ComparisonStat");
+                    var genuineComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "Genuine" + comparison.ReferenceInput + "ComparisonStat" + feature);
+                    var forgedComparisonStat = trainingComparisonStatistics.First(tcs => tcs.Description == "Forged" + comparison.ReferenceInput + "ComparisonStat" + feature);
                     var distance = TrainHelper.Do1v1Comparision(comparison, pipeline, distanceFunction, features);
 
                     return CalculateDecisionByDtwDistance(distance, genuineComparisonStat, forgedComparisonStat);

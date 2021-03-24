@@ -1,14 +1,14 @@
-﻿using OfficeOpenXml;
-using SigStat.Common;
+﻿using SigStat.Common;
 using SigStat.Common.Algorithms.Distances;
-using SigStat.Common.Helpers;
 using SigStat.Common.Pipeline;
 using SVC2021.Entities;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
+
 
 namespace SVC2021.Helpers
 {
@@ -26,7 +26,10 @@ namespace SVC2021.Helpers
 
         public struct TrainingComparisonData
         {
-            public double Distance { get; set; }
+            public double DtwDistance { get; set; }
+            public double DurationDifference { get; set; }
+            public double StdXDifference { get; set; }
+            public double StdYDifference { get; set; }
             public double ExpectedPrediction { get; set; }
             public InputDevice InputDevice { get; set; }
         }
@@ -45,6 +48,70 @@ namespace SVC2021.Helpers
             return distanceFunction.Calculate(refSig.GetAggregateFeature(features).ToArray(), testSig.GetAggregateFeature(features).ToArray());
         }
 
+        public static double CalculateDifference(Comparison1v1 comparison, FeatureDescriptor<List<double>> feature)
+        {
+            if (feature == Features.T)
+            {
+                var refTime = GlobalFeatureExtractor.CalculateDuration(comparison.ReferenceSignature);
+                var testTime = GlobalFeatureExtractor.CalculateDuration(comparison.QuestionedSignature);
+                return Math.Abs(refTime - testTime) / refTime;
+            }
+            else
+            {
+                var refStdDev = GlobalFeatureExtractor.CalculateStandardDeviationOfFeature(comparison.ReferenceSignature, feature);
+                var testStdDev = GlobalFeatureExtractor.CalculateStandardDeviationOfFeature(comparison.QuestionedSignature, feature);
+                return Math.Abs(refStdDev - testStdDev) / refStdDev;
+            }
+        }
+
+        public static List<TrainingStatistics> CalculateTrainingStatistics(string feature, List<double> genuineStylusTrainingDistances, List<double> forgedStylusTrainingDistances,
+            List<double> genuineFingerTrainingDistances, List<double> forgedFingerTrainingDistances)
+        {
+            List<TrainingStatistics> trainingComparisonStatistics = new List<TrainingStatistics>();
+
+            trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
+            {
+                Description = "GenuineStylusComparisonStat" + feature,
+                Min = genuineStylusTrainingDistances.Min(),
+                Max = genuineStylusTrainingDistances.Max(),
+                Average = genuineStylusTrainingDistances.Average(),
+                Median = genuineStylusTrainingDistances.Median(),
+                Stdev = genuineStylusTrainingDistances.StdDiviation()
+            });
+
+            trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
+            {
+                Description = "ForgedStylusComparisonStat" + feature,
+                Min = forgedStylusTrainingDistances.Min(),
+                Max = forgedStylusTrainingDistances.Max(),
+                Average = forgedStylusTrainingDistances.Average(),
+                Median = forgedStylusTrainingDistances.Median(),
+                Stdev = forgedStylusTrainingDistances.StdDiviation()
+            });
+
+            trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
+            {
+                Description = "GenuineFingerComparisonStat" + feature,
+                Min = genuineFingerTrainingDistances.Min(),
+                Max = genuineFingerTrainingDistances.Max(),
+                Average = genuineFingerTrainingDistances.Average(),
+                Median = genuineFingerTrainingDistances.Median(),
+                Stdev = genuineFingerTrainingDistances.StdDiviation()
+            });
+
+            trainingComparisonStatistics.Add(new TrainHelper.TrainingStatistics()
+            {
+                Description = "ForgedFingerComparisonStat" + feature,
+                Min = forgedFingerTrainingDistances.Min(),
+                Max = forgedFingerTrainingDistances.Max(),
+                Average = forgedFingerTrainingDistances.Average(),
+                Median = forgedFingerTrainingDistances.Median(),
+                Stdev = forgedFingerTrainingDistances.StdDiviation()
+            });
+
+            return trainingComparisonStatistics;
+        }
+
         public static void SaveTrainingStatistic(List<TrainingComparisonData> trainingData, List<TrainingStatistics> statistics, string filename)
         {
             using (var sw = new StreamWriter(filename, false, Encoding.ASCII))
@@ -59,7 +126,7 @@ namespace SVC2021.Helpers
 
                 foreach (var data in trainingData)
                 {
-                    sw.WriteLine($"{data.Distance};{data.ExpectedPrediction};{data.InputDevice}");
+                    sw.WriteLine($"{data.DtwDistance};{data.ExpectedPrediction};{data.InputDevice};{data.DurationDifference};{data.StdXDifference};{data.StdYDifference}");
                 }
             }
 

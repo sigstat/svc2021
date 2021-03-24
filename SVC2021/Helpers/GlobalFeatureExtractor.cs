@@ -13,7 +13,7 @@ namespace SVC2021.Helpers
         {
             var timeStamps = signature.T;
 
-            double total = timeStamps.Last() - timeStamps.First();
+            double total = timeStamps.Max() - timeStamps.Min();
             signature.SetFeature("Duration", total);
             return total;
         }

@@ -29,7 +29,8 @@ namespace SVC2021.Helpers
         public static readonly ITransformation TranslateCogY = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.Y, OutputFeature = Features.Y };
         public static readonly ITransformation TranslateCogPressure = new TranslatePreproc(OriginType.CenterOfGravity) { InputFeature = Features.Pressure, OutputFeature = Features.Pressure };
 
-        public static readonly ITransformation Rotation = new NormalizeRotation2() { InputX = Features.X, InputY = Features.Y, OutputX = Features.X, OutputY = Features.Y };
+        public static readonly ITransformation Rotation1 = new NormalizeRotation() { InputX = Features.X, InputY = Features.Y, OutputX = Features.X, OutputY = Features.Y, InputT = Features.T };
+        public static readonly ITransformation Rotation2 = new NormalizeRotation2() { InputX = Features.X, InputY = Features.Y, OutputX = Features.X, OutputY = Features.Y };
 
         public static readonly ITransformation FilterScale1TranslateCogXYP = new SequentialTransformPipeline()
             {
@@ -51,9 +52,9 @@ namespace SVC2021.Helpers
                 TranslateCogY,
             };
 
-        public static readonly ITransformation RotationFilterScale1TranslateCogXYP = new SequentialTransformPipeline()
+        public static readonly ITransformation Rotation2FilterScale1TranslateCogXYP = new SequentialTransformPipeline()
             {
-                Rotation,
+                Rotation2,
                 Filter,
                 Scale1X,
                 Scale1Y,
@@ -61,6 +62,30 @@ namespace SVC2021.Helpers
                 TranslateCogX,
                 TranslateCogY,
                 TranslateCogPressure
+            };
+
+        public static readonly ITransformation FilterScale1TranslateCogRotation2XYP = new SequentialTransformPipeline()
+            {
+                Filter,
+                Scale1X,
+                Scale1Y,
+                Scale1Pressure,
+                TranslateCogX,
+                TranslateCogY,
+                TranslateCogPressure,
+                Rotation2
+            };
+
+        public static readonly ITransformation FilterScale1TranslateCogRotation1XYP = new SequentialTransformPipeline()
+            {
+                Filter,
+                Scale1X,
+                Scale1Y,
+                Scale1Pressure,
+                TranslateCogX,
+                TranslateCogY,
+                TranslateCogPressure,
+                Rotation1
             };
     }
 }

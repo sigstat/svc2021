@@ -78,7 +78,7 @@ namespace SVC2021
                 Verifier verifier = new Verifier()
                 {
                     Pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) {
-                        //Pipelines.Filter,
+                        Pipelines.Filter2,
                         Pipelines.SvcScale1X, Pipelines.SvcScale1Y, Pipelines.SvcScale1Pressure,
                         Pipelines.TranslateCogX, Pipelines.TranslateCogY, Pipelines.TranslateCogPressure
 

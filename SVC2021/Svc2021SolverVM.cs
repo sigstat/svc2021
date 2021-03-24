@@ -29,7 +29,7 @@ namespace SVC2021
             string fileBase = Path.GetFileNameWithoutExtension(comparisonFile);
             string predictionsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_predictions.txt";
             string resultsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_results.xlsx";
-            
+
 
             Debug("Loading signatures");
             // The loader now works with the evaluation database
@@ -78,18 +78,15 @@ namespace SVC2021
                 Verifier verifier = new Verifier()
                 {
                     Pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) {
-                        Pipelines.Filter,
-                        Pipelines.Scale1X, Pipelines.Scale1Y, Pipelines.Scale1Pressure,
+                        //Pipelines.Filter,
+                        Pipelines.SvcScale1X, Pipelines.SvcScale1Y, Pipelines.SvcScale1Pressure,
                         Pipelines.TranslateCogX, Pipelines.TranslateCogY, Pipelines.TranslateCogPressure
 
                         },
-                    Classifier = new DtwNeighborsClassifier() {scale= scaling, Features = { Features.X, Features.Y, Features.Pressure } }
+                    Classifier = new DtwNeighborsClassifier() { scale = scaling, Features = { Features.X, Features.Y, Features.Pressure } }
                 };
                 verifier.Train(signer.Signatures);
-                foreach (var signature in signer.Signatures)
-                {
-                    verifiersBySignature[signature.ID] = verifier;
-                }
+                verifiersBySignature[signer.ID] = verifier;
                 progress.IncrementValue();
             });
 
@@ -111,30 +108,9 @@ namespace SVC2021
 
 
             progress = ProgressHelper.StartNew(1000, 3);
-            var results = new ConcurrentBag<BenchmarkResult>();
-            int forgeryCount = comparisons.Count(c => c.ExpectedPrediction == 1);
-            int genuineCount = comparisons.Count(c => c.ExpectedPrediction == 0);
 
-            Parallel.For(0, 1000, Program.ParallelOptions, i =>
-            {
-                BenchmarkResult benchmark = new BenchmarkResult() { ForgeryCount = forgeryCount, GenuineCount = genuineCount };
-                benchmark.Threshold = ((double)i) / 1000;
-                foreach (var comparison in comparisons)
-                {
-                    if (comparison.ExpectedPrediction == 1)
-                    {
-                        if (comparison.Prediction < benchmark.Threshold) benchmark.FalseAcceptance++;
-                    }
-                    else
-                    {
-                        if (comparison.Prediction >= benchmark.Threshold) benchmark.FalseRejection++;
-                    }
-                }
-                results.Add(benchmark);
-                progress.IncrementValue();
-            });
-
-            ComparisonHelper.SaveBenchmarkResults(results.OrderBy(r => r.Threshold), resultsFile);
+            var benchmarkResults = ComparisonHelper.GetBenchmarkResults(comparisons);
+            ComparisonHelper.SaveBenchmarkResults(benchmarkResults, resultsFile);
 
 
             Debug($"Ready");

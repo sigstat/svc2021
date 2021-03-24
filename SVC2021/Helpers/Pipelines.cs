@@ -21,6 +21,10 @@ namespace SVC2021.Helpers
         public static readonly ITransformation Scale1Y = new Scale() { InputFeature = Features.Y, OutputFeature = Features.Y, Mode = ScalingMode.Scaling1 };
         public static readonly ITransformation Scale1Pressure = new Scale() { InputFeature = Features.Pressure, OutputFeature = Features.Pressure, Mode = ScalingMode.Scaling1 };
 
+        public static readonly ITransformation SvcScale1X = new SvcScale() { InputFeature = Features.X, OutputFeature = Features.X, Mode = ScalingMode.Scaling1 };
+        public static readonly ITransformation SvcScale1Y = new SvcScale() { InputFeature = Features.Y, OutputFeature = Features.Y, Mode = ScalingMode.Scaling1 };
+        public static readonly ITransformation SvcScale1Pressure = new SvcScale() { InputFeature = Features.Pressure, OutputFeature = Features.Pressure, Mode = ScalingMode.Scaling1 };
+
         public static readonly ITransformation ScaleSX = new Scale() { InputFeature = Features.X, OutputFeature = Features.X, Mode = ScalingMode.ScalingS };
         public static readonly ITransformation ScaleSY = new Scale() { InputFeature = Features.Y, OutputFeature = Features.Y, Mode = ScalingMode.ScalingS };
         public static readonly ITransformation ScaleSPressure = new Scale() { InputFeature = Features.Pressure, OutputFeature = Features.Pressure, Mode = ScalingMode.ScalingS };

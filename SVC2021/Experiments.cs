@@ -34,7 +34,7 @@ namespace SVC2021
         }
         public static IEnumerable<string> EnumerateComparisons(string dbPath, InputDevice input)
         {
-            Console.WriteLine("Generating comparisons for "+input);
+            Console.WriteLine("Generating comparisons for " + input);
             int randomCount = 40;
             int genuineCount = 20;
             int forgeryCount = 20;
@@ -48,26 +48,26 @@ namespace SVC2021
             }
 
             signers = signers.Where(s => s.Signatures.Count > 0).ToList();
-            Console.WriteLine("Found "+signers.Count+" signers");
+            Console.WriteLine("Found " + signers.Count + " signers");
 
             var allSignatures = signers.SelectMany(s => s.Signatures).ToList();
             var step = allSignatures.Count / randomCount;
 
-            Console.WriteLine("Found "+allSignatures.Count +" signatures");
+            Console.WriteLine("Found " + allSignatures.Count + " signatures");
 
             foreach (var signer in signers)
             {
                 var genuineSignatures = signer.Signatures.Where(s => s.Origin == Origin.Genuine).ToList();
                 var forgedSignatures = signer.Signatures.Where(s => s.Origin == Origin.Forged).ToList();
-                var randomForgeries = Enumerable.Range(0, randomCount).Select(i=>allSignatures[i* step + rnd.Next(step)]);
+                var randomForgeries = Enumerable.Range(0, randomCount).Select(i => allSignatures[i * step + rnd.Next(step)]);
 
                 genuineSignatures.LimitRandomly(genuineCount);
                 forgedSignatures.LimitRandomly(forgeryCount);
                 for (int i = 0; i < genuineSignatures.Count; i++)
                 {
-                    for (int j = i+1; j < genuineSignatures.Count; j++)
+                    for (int j = i + 1; j < genuineSignatures.Count; j++)
                     {
-                        yield return genuineSignatures[i].ID+" "+genuineSignatures[j].ID;
+                        yield return genuineSignatures[i].ID + " " + genuineSignatures[j].ID;
                     }
                 }
                 for (int i = 0; i < genuineSignatures.Count; i++)
@@ -87,7 +87,7 @@ namespace SVC2021
                     }
                 }
 
-               
+
             }
 
         }
@@ -224,7 +224,7 @@ namespace SVC2021
             }
 
             Console.WriteLine("Creating feature vectors");
-            List<FeatureDescriptor> features = new List<FeatureDescriptor>() { Features.X, Features.Y};
+            List<FeatureDescriptor> features = new List<FeatureDescriptor>() { Features.X, Features.Y, Features.Pressure };
             var signatureFeatures = distinctReferenceSignatures.Select(s => new { s.ID, Values = s.GetAggregateFeature(features).ToArray() }).ToList();
 
 
@@ -252,10 +252,10 @@ namespace SVC2021
                         distances[i, j] = 0;
                     }
                     // We only compare similar signatures here
-               //     else if (distinctReferenceSignatures[i].InputDevice != distinctReferenceSignatures[j].InputDevice)
-                //    {
-               //         distances[i, j] = 0;
-               //     }
+                    else if (distinctReferenceSignatures[i].InputDevice != distinctReferenceSignatures[j].InputDevice)
+                    {
+                        distances[i, j] = 0;
+                    }
                     else
                     {
                         distances[i, j] = dtw.Calculate(sigI.Values, sigJ.Values);
@@ -265,15 +265,16 @@ namespace SVC2021
 
             Console.WriteLine("Calculating nearest neighbors...");
 
-            var nearestNeighbors = new Dictionary<string, List<Tuple<string,double>>>();
+            var nearestNeighbors = new Dictionary<string, List<Tuple<string, double>>>();
 
             for (int i = 0; i < signatureFeatures.Count; i++)
             {
                 var nn = Enumerable.Range(0, signatureFeatures.Count).Select(j => new { J = j, Distance = distances[i, j] })
                     .Where(t => t.J != i)
+                    .Where(t => t.Distance != 0)
                     .OrderBy(d => d.Distance)
                     .Take(3)
-                    .Select(t=> new Tuple<string,double>(signatureFeatures[t.J].ID, t.Distance ))
+                    .Select(t => new Tuple<string, double>(signatureFeatures[t.J].ID, t.Distance))
                     .ToList();
                 nearestNeighbors[signatureFeatures[i].ID] = nn;
             }
@@ -337,7 +338,7 @@ namespace SVC2021
             {
                 var signer = new Signer() { ID = neighborhood.PrimarySignatureId };
                 signer.Signatures.Add(signatures[neighborhood.PrimarySignatureId]);
-                signer.Signatures.AddRange(neighborhood.NeighborSignatureIds.Select(id=>signatures[id]));
+                signer.Signatures.AddRange(neighborhood.NeighborSignatureIds.Select(id => signatures[id]));
 
                 groupedSigners.Add(signer);
             }

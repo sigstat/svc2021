@@ -169,5 +169,16 @@ namespace SVC2021.Helpers
                 })
                 .ToList();
         }
+
+        internal static void SaveTrainingCsv(List<Comparison1v1> comparisons, string trainingFile)
+        {
+            var comparison = comparisons.First();
+            var header = "ExpectedResult;" + string.Join(';',comparison.Metadata.Select(kvp => kvp.Key));
+
+            File.WriteAllLines(trainingFile,
+                new[] { header }
+                .Concat(comparisons.Select(c => c.ExpectedPrediction + ";" + string.Join(';', c.Metadata.Select(m => m.Value.ToString(NumberFormat)))))
+                );
+        }
     }
 }

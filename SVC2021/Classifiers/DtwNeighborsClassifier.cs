@@ -44,7 +44,7 @@ namespace SVC2021.Classifiers
 
     }
     /// <summary>
-    /// Classifies Signatures with the DTW algorithm.
+    /// Classifies Signatures with the DTW algorithm and 3 neariest neighbors 
     /// </summary>
     [JsonObject(MemberSerialization.OptOut)]
     public class DtwNeighborsClassifier : PipelineBase, IClassifier
@@ -98,14 +98,11 @@ namespace SVC2021.Classifiers
             var max = distances.Max();
             var avg = distances.Average();
 
-
-
             return new DtwNeighborsSignerModel
             {
                 SignerID = signerID,
                 ReferenceSignatures = references.Select(g => new KeyValuePair<string, double[][]>(g.ID, g.Values)).ToList(),
                 GenuineThreshold = min,
-                AverageThreshold= avg,
                 ForgeryThreshold = scale*avg,
             };
         }
@@ -134,10 +131,6 @@ namespace SVC2021.Classifiers
                 ForgeryThreshold = dtwModel.ForgeryThreshold
 
             });
-
-
-            //if (avgDistance < dtwModel.CountMinThreshold || avgDistance > dtwModel.CountMaxThreshold)
-            //return 0;
 
             if (avgDistance < dtwModel.GenuineThreshold)
                 return 1;

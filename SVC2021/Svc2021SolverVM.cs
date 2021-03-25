@@ -86,6 +86,8 @@ namespace SVC2021
                     Classifier = new DtwNeighborsClassifier() { scale = scaling, Features = { Features.X, Features.Y, Features.Pressure } }
                 };
                 verifier.Train(signer.Signatures);
+
+                //signer and signature have the same ID
                 verifiersBySignature[signer.ID] = verifier;
                 progress.IncrementValue();
             });

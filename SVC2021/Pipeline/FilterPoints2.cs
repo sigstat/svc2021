@@ -54,6 +54,7 @@ namespace SigStat.Common.PipelineItems.Transforms.Preprocessing
 
 
                 var indexes = new List<int>();
+            // Filter only if the signature has pressure values
             if (max != 0)
             {
                 for (int i = keyFeatureValues.Count - 1; i > 0; i--)

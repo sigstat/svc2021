@@ -101,7 +101,9 @@ namespace SVC2021
             progress = ProgressHelper.StartNew(comparisons.Count, 10);
             Parallel.ForEach(comparisons, Program.ParallelOptions, comparison =>
             {
-                comparison.Prediction = 1 - verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
+                verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
+                comparison.Prediction = -1; // Predictions will be calculated by Azure
+                //  comparison.Prediction = 1 - verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
                 progress.IncrementValue();
             });
 
@@ -119,13 +121,13 @@ namespace SVC2021
                 var stdevY1 = comparison.ReferenceSignature.Y.StdDiviation();
                 var stdevP1 = comparison.ReferenceSignature.Pressure.StdDiviation();
                 var count1 = comparison.ReferenceSignature.X.Count;
-                var duration1 = comparison.ReferenceSignature.T[^1] - comparison.ReferenceSignature.T[0];
+                var duration1 = comparison.ReferenceSignature.T.Max() - comparison.ReferenceSignature.T.Min();
 
                 var stdevX2 = comparison.QuestionedSignature.X.StdDiviation();
                 var stdevY2 = comparison.QuestionedSignature.Y.StdDiviation();
                 var stdevP2 = comparison.QuestionedSignature.Pressure.StdDiviation();
                 var count2 = comparison.QuestionedSignature.X.Count;
-                var duration2 = comparison.QuestionedSignature.T[^1] - comparison.QuestionedSignature.T[0];
+                var duration2 = comparison.QuestionedSignature.T.Max() - comparison.QuestionedSignature.T.Min();
 
                 comparison.Add("stdevX1", stdevX1);
                 comparison.Add("stdevY1", stdevY1);
@@ -147,6 +149,29 @@ namespace SVC2021
                 comparison.Add("diffDuration", GetDifference(duration1, duration2));
 
             }
+
+            var stylusComparisons = comparisons.Where(c => c.ReferenceInput == InputDevice.Stylus).ToList();
+            var fingerComparisons = comparisons.Where(c => c.ReferenceInput == InputDevice.Finger).ToList();
+
+
+            var stylusHeaders = comparisons[0].Metadata.Select(kvp => kvp.Key).ToArray();
+            var stylusBatch = stylusComparisons.Select(c => stylusHeaders.Zip(c.Metadata.Select(m => m.Value)).ToDictionary(f => f.First, f => f.Second.ToString(ComparisonHelper.NumberFormat))).ToList();
+            var stylusPredictions = AzureHelper.InvokeRequestResponseService(stylusBatch, Program.DeepSignStylusApi).Result.ToList();
+            for (int i = 0; i < stylusPredictions.Count; i++)
+            {
+                stylusComparisons[i].Prediction = stylusPredictions[i];
+            }
+
+            var allHeaders = comparisons[0].Metadata.Select(kvp => kvp.Key).ToArray();
+            var skipIndexes = new[] { "stdevP1", "stdevP2", "diffP" }.Select(c => allHeaders.IndexOf(c)).ToArray();
+            var fingerHeaders = allHeaders.Skip(skipIndexes).ToArray();
+            var fingerBatch = fingerComparisons.Select(c => fingerHeaders.Zip(c.Metadata.Select(m => m.Value).Skip(skipIndexes)).ToDictionary(f => f.First, f => f.Second.ToString(ComparisonHelper.NumberFormat))).ToList();
+            var fingerPredictions = AzureHelper.InvokeRequestResponseService(fingerBatch, Program.DeepSignFingerApi).Result.ToList();
+            for (int i = 0; i < fingerPredictions.Count; i++)
+            {
+                fingerComparisons[i].Prediction = fingerPredictions[i];
+            }
+
             ComparisonHelper.SavePredictions(comparisons, predictionsFile);
             ComparisonHelper.SaveComparisons(comparisons, resultsFile);
             ComparisonHelper.SaveTrainingCsv(comparisons, trainingFile);
@@ -157,6 +182,9 @@ namespace SVC2021
             ComparisonHelper.SaveBenchmarkResults(results, resultsFile);
 
             Console.WriteLine(results.GetEer());
+
+
+
 
             Debug($"Ready");
         }

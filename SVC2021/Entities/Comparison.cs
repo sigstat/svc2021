@@ -48,10 +48,13 @@ namespace SVC2021.Entities
 
 
 
-        public Comparison1v1(string referenceSignatureFile, string questionedSignatureFile)
+        public Comparison1v1(string referenceSignatureFile, string questionedSignatureFile, Svc2021Signature referenceSiganture, Svc2021Signature questionedSignature)
         {
             ReferenceSignatureFile = referenceSignatureFile;
             QuestionedSignatureFile = questionedSignatureFile;
+
+            ReferenceSignature = referenceSiganture;
+            QuestionedSignature = questionedSignature;
 
             var rf = new SignatureFile(referenceSignatureFile);
             var qf = new SignatureFile(questionedSignatureFile);
@@ -65,10 +68,10 @@ namespace SVC2021.Entities
             ExpectedPrediction = Origin == "Genuine" ? 0 : 1;
 
             ReferenceSigner = rf.SignerID;
-            ReferenceInput = rf.InputDevice;
+            ReferenceInput = referenceSiganture?.InputDevice?? rf.InputDevice;
 
             QuestionedSigner = qf.SignerID;
-            QuestionedInput = qf.InputDevice;
+            QuestionedInput = questionedSignature?.InputDevice ?? qf.InputDevice;
         }
 
 

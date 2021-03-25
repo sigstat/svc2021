@@ -46,11 +46,24 @@ namespace SVC2021
         public static readonly ParallelOptions ParallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = -1 };
 
 
-
+        public static string DevelopFingerApi = "";
+        public static string DevelopStylusApi = "http://dd52f64f-e407-4d17-afb6-564a25a3b762.westeurope.azurecontainer.io/score";
+        public static string DeepSignStylusApi = "http://f6aadbcb-f769-4d62-81ce-f6949adfac69.westeurope.azurecontainer.io/score";
+        public static string DeepSignFingerApi = "http://3cbb9e16-6247-44e8-9d47-2b2bc7082920.westeurope.azurecontainer.io/score";
+ 
         static void Main(string[] args)
         {
-            Experiments.GenerateTrainingComparisons(DeepSignDbPath, Split.Development, InputDevice.Stylus);
-            Svc2021SolverV2.Solve(DeepSignDbPath, $"{Split.Development}_{InputDevice.Stylus}_comparisons.txt");
+            var skipColumnsStylus = new[] { "ExpectedResult" };
+            var skipColumnsFinger = new[] { "ExpectedResult", "stdevP1", "stdevP2", "diffP" };
+            Svc2021SolverV2.Solve(Svc2021EvalDbPath, SvcComparisonsFile3);
+
+
+            //AzureHelper.GetPredictions("SVC2021_Task2_comparisons20210324_2111_training.csv", $"Task2_prediction.txt", DeepSignFingerApi, skipColumnsFinger);
+
+
+            //GenerateMLTrainingSet(Split.Development | Split.Evaluation, InputDevice.Finger);
+            //GenerateMLTrainingSet(Split.Development | Split.Evaluation, InputDevice.Stylus);
+
 
             //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile1);
             //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile2);
@@ -67,6 +80,15 @@ namespace SVC2021
             //Svc2021SolverV2.Solve(DbPath, ComparisonsFile2);
             //Svc2021SolverV2.Solve(DbPath, ComparisonsFile3);
 
+        }
+
+        private static void GenerateMLTrainingSet( Split split, InputDevice device)
+        {
+            Console.WriteLine("*******************");
+            Console.WriteLine("SPLIT: "+split );
+            Console.WriteLine("DEVICE: "+device);
+            Experiments.GenerateTrainingComparisons(DeepSignDbPath, split, device);
+            Svc2021SolverV2.Solve(DeepSignDbPath, $"{split}_{device}_comparisons.txt");
         }
 
 

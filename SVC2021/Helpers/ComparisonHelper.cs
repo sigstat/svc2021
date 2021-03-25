@@ -27,12 +27,7 @@ namespace SVC2021.Helpers
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
                     string[] parts = line.Split(' ');
-                    yield return new Comparison1v1(parts[0], parts[1])
-                    {
-                        // reference the signature objects if, a preloaded database is already available
-                        ReferenceSignature = db?[parts[0].ToLower()],
-                        QuestionedSignature = db?[parts[1].ToLower()]
-                    };
+                    yield return new Comparison1v1(parts[0], parts[1], db?[parts[0].ToLower()], db?[parts[1].ToLower()]);
                 }
             }
 
@@ -59,14 +54,11 @@ namespace SVC2021.Helpers
                                 if (string.IsNullOrWhiteSpace(line))
                                     continue;
                                 string[] parts = line.Split(' ');
-                                var refSig = "Evaluation\\" + inputDevice + "\\" + parts[0];
-                                var testSig = "Evaluation\\" + inputDevice + "\\" + parts[1];
-                                trainingComparisons.Add(new Comparison1v1(refSig, testSig)
-                                {
-                                    // reference the signature objects if, a preloaded database is already available
-                                    ReferenceSignature = db?["Evaluation\\" + inputDevice + "\\" + parts[0].ToLower()],
-                                    QuestionedSignature = db?["Evaluation\\" + inputDevice + "\\" + parts[1].ToLower()],
-                                });
+                                var refSigID = "Evaluation\\" + inputDevice + "\\" + parts[0];
+                                var testSigID = "Evaluation\\" + inputDevice + "\\" + parts[1];
+                                var refSig = db?["Evaluation\\" + inputDevice + "\\" + parts[0].ToLower()];
+                                var testSig = db?["Evaluation\\" + inputDevice + "\\" + parts[1].ToLower()];
+                                trainingComparisons.Add(new Comparison1v1(refSigID, testSigID, refSig, testSig));
                             }
 
                         }
@@ -142,6 +134,12 @@ namespace SVC2021.Helpers
 
         public static BenchmarkResult GetEer(this IEnumerable<BenchmarkResult> benchmarks)
         {
+            if (benchmarks.All(b=>double.IsNaN(b.FRR) || double.IsNaN(b.FAR)))
+            {
+                Console.WriteLine("Invalid FRR or FAR values in evaluation");
+                return null;
+            }
+
             var min = benchmarks.Select(c => Math.Abs(c.FAR - c.FRR)).Min();
             return benchmarks.First(c => Math.Abs(c.FAR - c.FRR) == min);
         }

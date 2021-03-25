@@ -78,7 +78,7 @@ namespace SVC2021
                 Verifier verifier = new Verifier()
                 {
                     Pipeline = new ConditionalSequence(Svc2021.IsPreprocessed) {
-                        //Pipelines.Filter,
+                        Pipelines.Filter2,
                         Pipelines.SvcScale1X, Pipelines.SvcScale1Y, Pipelines.SvcScale1Pressure,
                         Pipelines.TranslateCogX, Pipelines.TranslateCogY, Pipelines.TranslateCogPressure
 
@@ -86,6 +86,8 @@ namespace SVC2021
                     Classifier = new DtwNeighborsClassifier() { scale = scaling, Features = { Features.X, Features.Y, Features.Pressure } }
                 };
                 verifier.Train(signer.Signatures);
+
+                //signer and signature have the same ID
                 verifiersBySignature[signer.ID] = verifier;
                 progress.IncrementValue();
             });

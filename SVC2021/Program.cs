@@ -21,11 +21,11 @@ using SVC2021.Helpers;
 namespace SVC2021
 {
     class Program
-    { 
+    {
 
         public static string DeepSignDbPath = GetDeepSignDbPath();
 
-        public static string Svc2021EvalDbPath =  GetSvc2021EvalDbPath();
+        public static string Svc2021EvalDbPath = GetSvc2021EvalDbPath();
 
         public static string SignaturesDirectory = "Data\\Signatures";
 
@@ -49,15 +49,15 @@ namespace SVC2021
 
         static void Main(string[] args)
         {
-            Experiments.GenerateTrainingComparisons(DeepSignDbPath);
-            
-            //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile3);
-            //Experiments.LoadAndGroupSigners(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1);
-            Svc2021SolverV2.Solve(DeepSignDbPath, "finger_comparisons.txt");
-            Svc2021SolverV2.Solve(DeepSignDbPath, "stylus_comparisons.txt");
-            //Svc2021SolverV2.Solve(DbPath, ComparisonsFile2);
-            //Svc2021SolverV2.Solve(DbPath, ComparisonsFile3);
+            // Train
+            //Svc2021SolverVC.Solve(DeepSignDbPath, ComparisonsFile1, false, true);
+            //Svc2021SolverVC.Solve(DeepSignDbPath, ComparisonsFile2, false, true);
+            Svc2021SolverVC.Solve(DeepSignDbPath, ComparisonsFile3, false, true);
 
+            // Competition
+            //Svc2021SolverVC.Solve(Svc2021EvalDbPath, SvcComparisonsFile1, false, true);
+            //Svc2021SolverVC.Solve(Svc2021EvalDbPath, SvcComparisonsFile2, false, true);
+            //Svc2021SolverVC.Solve(Svc2021EvalDbPath, SvcComparisonsFile3, false, true);
         }
 
 

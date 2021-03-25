@@ -17,6 +17,14 @@ namespace SVC2021.Helpers
             KeyFeatureOutput = Features.Pressure
         };
 
+        public static readonly ITransformation Filter2 = new FilterPoints2
+        {
+            InputFeatures = new List<FeatureDescriptor<List<double>>> { Features.X, Features.Y, Features.T },
+            OutputFeatures = new List<FeatureDescriptor<List<double>>> { Features.X, Features.Y, Features.T },
+            KeyFeatureInput = Features.Pressure,
+            KeyFeatureOutput = Features.Pressure
+        };
+
         public static readonly ITransformation Scale1X = new Scale() { InputFeature = Features.X, OutputFeature = Features.X, Mode = ScalingMode.Scaling1 };
         public static readonly ITransformation Scale1Y = new Scale() { InputFeature = Features.Y, OutputFeature = Features.Y, Mode = ScalingMode.Scaling1 };
         public static readonly ITransformation Scale1Pressure = new Scale() { InputFeature = Features.Pressure, OutputFeature = Features.Pressure, Mode = ScalingMode.Scaling1 };

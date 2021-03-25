@@ -49,15 +49,24 @@ namespace SVC2021
 
         static void Main(string[] args)
         {
-            // Train
-            //Svc2021SolverVC.Solve(DeepSignDbPath, ComparisonsFile1, false, true);
-            //Svc2021SolverVC.Solve(DeepSignDbPath, ComparisonsFile2, false, true);
-            Svc2021SolverVC.Solve(DeepSignDbPath, ComparisonsFile3, false, true);
+            Experiments.GenerateTrainingComparisons(DeepSignDbPath, Split.Development, InputDevice.Stylus);
+            Svc2021SolverV2.Solve(DeepSignDbPath, $"{Split.Development}_{InputDevice.Stylus}_comparisons.txt");
 
-            // Competition
-            //Svc2021SolverVC.Solve(Svc2021EvalDbPath, SvcComparisonsFile1, false, true);
-            //Svc2021SolverVC.Solve(Svc2021EvalDbPath, SvcComparisonsFile2, false, true);
-            //Svc2021SolverVC.Solve(Svc2021EvalDbPath, SvcComparisonsFile3, false, true);
+            //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile1);
+            //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile2);
+            //Experiments.GroupCompetitionSigners(Svc2021EvalDbPath, SvcComparisonsFile3);
+            //Experiments.LoadAndGroupSigners(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1);
+
+            //Svc2021SolverVM.Solve(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1, 5);
+            //Svc2021SolverVM.Solve(Svc2021EvalDbPath, SvcComparisonsFile2, SvcNeighborFile2, 5);
+            //Svc2021SolverVM.Solve(Svc2021EvalDbPath, SvcComparisonsFile3, SvcNeighborFile3, 5);
+
+            //Svc2021SolverV2.Solve(DeepSignDbPath, ComparisonsFile1);
+            ////Experiments.LoadAndGroupSigners(Svc2021EvalDbPath, SvcComparisonsFile1, SvcNeighborFile1);
+            //Svc2021SolverV2.Solve(DeepSignDbPath, "finger_comparisons.txt");
+            //Svc2021SolverV2.Solve(DbPath, ComparisonsFile2);
+            //Svc2021SolverV2.Solve(DbPath, ComparisonsFile3);
+
         }
 
 

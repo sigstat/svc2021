@@ -46,6 +46,8 @@ namespace SVC2021
             string fileBase = Path.GetFileNameWithoutExtension(comparisonsFile);
             string predictionsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_predictions.txt";
             string resultsFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_results.xlsx";
+            string trainingFile = fileBase + DateTime.Now.ToString("yyyyMMdd_HHmm") + "_training.csv";
+
 
             Debug("Loading signatures");
             var loader = new Svc2021Loader(dbPath, true) { Logger = logger };
@@ -147,6 +149,7 @@ namespace SVC2021
             }
             ComparisonHelper.SavePredictions(comparisons, predictionsFile);
             ComparisonHelper.SaveComparisons(comparisons, resultsFile);
+            ComparisonHelper.SaveTrainingCsv(comparisons, trainingFile);
 
             Debug($"Predictions saved");
 

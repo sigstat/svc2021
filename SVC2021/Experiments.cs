@@ -182,9 +182,9 @@ namespace SVC2021
 
         }
 
-        internal static void GroupCompetitionSigners(string dbPath, string comparisonFile)
+        internal static string GroupCompetitionSigners(string dbPath, string comparisonFile)
         {
-            string outputFile = Path.GetFileNameWithoutExtension(comparisonFile) + "_neighbors.txt";
+            string neighborFile = Path.GetFileNameWithoutExtension(comparisonFile) + "_neighbors.txt";
             string matrixFile = Path.GetFileNameWithoutExtension(comparisonFile) + "_matrix.xlsx";
             if (File.Exists(matrixFile)) File.Delete(matrixFile);
 
@@ -284,7 +284,7 @@ namespace SVC2021
 
             Console.WriteLine("Writing nearest neighbors...");
             var lines = nearestNeighbors.Select(kvp => $"{kvp.Key} {string.Join(' ', kvp.Value.Select(v => v.Item1))} {string.Join(' ', kvp.Value.Select(v => v.Item2.ToString(ComparisonHelper.NumberFormat)))}");
-            File.WriteAllLines(outputFile, lines);
+            File.WriteAllLines(neighborFile, lines);
 
             Console.WriteLine("Writing distances...");
             object[,] distanceTable = new object[signatureFeatures.Count + 1, signatureFeatures.Count + 1];
@@ -306,6 +306,7 @@ namespace SVC2021
 
 
             Console.WriteLine("Ready");
+            return neighborFile;
 
         }
 

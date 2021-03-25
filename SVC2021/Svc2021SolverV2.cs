@@ -34,7 +34,7 @@ namespace SVC2021
         }
         static Stopwatch sw = Stopwatch.StartNew();
 
-        public static void Solve(string dbPath, string comparisonsFile)
+        public static string Solve(string dbPath, string comparisonsFile, bool useAzureClassification)
         {
             // Option1: Decisions must be made exclusively on comparison signature pairs, no other information can be used
 
@@ -101,9 +101,15 @@ namespace SVC2021
             progress = ProgressHelper.StartNew(comparisons.Count, 10);
             Parallel.ForEach(comparisons, Program.ParallelOptions, comparison =>
             {
-                verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
-                comparison.Prediction = -1; // Predictions will be calculated by Azure
-                //  comparison.Prediction = 1 - verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
+                if (useAzureClassification)
+                {
+                    verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
+                    comparison.Prediction = -1; // Predictions will be calculated by Azure
+                }
+                else
+                {
+                    comparison.Prediction = 1 - verifiersBySignature[comparison.ReferenceSignature.ID].Test(comparison.QuestionedSignature);
+                }
                 progress.IncrementValue();
             });
 
@@ -150,26 +156,29 @@ namespace SVC2021
 
             }
 
-            var stylusComparisons = comparisons.Where(c => c.ReferenceInput == InputDevice.Stylus).ToList();
-            var fingerComparisons = comparisons.Where(c => c.ReferenceInput == InputDevice.Finger).ToList();
-
-
-            var stylusHeaders = comparisons[0].Metadata.Select(kvp => kvp.Key).ToArray();
-            var stylusBatch = stylusComparisons.Select(c => stylusHeaders.Zip(c.Metadata.Select(m => m.Value)).ToDictionary(f => f.First, f => f.Second.ToString(ComparisonHelper.NumberFormat))).ToList();
-            var stylusPredictions = AzureHelper.InvokeRequestResponseService(stylusBatch, Program.DeepSignStylusApi).Result.ToList();
-            for (int i = 0; i < stylusPredictions.Count; i++)
+            if (useAzureClassification)
             {
-                stylusComparisons[i].Prediction = stylusPredictions[i];
-            }
+                var stylusComparisons = comparisons.Where(c => c.ReferenceInput == InputDevice.Stylus).ToList();
+                var fingerComparisons = comparisons.Where(c => c.ReferenceInput == InputDevice.Finger).ToList();
 
-            var allHeaders = comparisons[0].Metadata.Select(kvp => kvp.Key).ToArray();
-            var skipIndexes = new[] { "stdevP1", "stdevP2", "diffP" }.Select(c => allHeaders.IndexOf(c)).ToArray();
-            var fingerHeaders = allHeaders.Skip(skipIndexes).ToArray();
-            var fingerBatch = fingerComparisons.Select(c => fingerHeaders.Zip(c.Metadata.Select(m => m.Value).Skip(skipIndexes)).ToDictionary(f => f.First, f => f.Second.ToString(ComparisonHelper.NumberFormat))).ToList();
-            var fingerPredictions = AzureHelper.InvokeRequestResponseService(fingerBatch, Program.DeepSignFingerApi).Result.ToList();
-            for (int i = 0; i < fingerPredictions.Count; i++)
-            {
-                fingerComparisons[i].Prediction = fingerPredictions[i];
+
+                var stylusHeaders = comparisons[0].Metadata.Select(kvp => kvp.Key).ToArray();
+                var stylusBatch = stylusComparisons.Select(c => stylusHeaders.Zip(c.Metadata.Select(m => m.Value)).ToDictionary(f => f.First, f => f.Second.ToString(ComparisonHelper.NumberFormat))).ToList();
+                var stylusPredictions = AzureHelper.InvokeRequestResponseService(stylusBatch, Program.DeepSignStylusApi).Result.ToList();
+                for (int i = 0; i < stylusPredictions.Count; i++)
+                {
+                    stylusComparisons[i].Prediction = stylusPredictions[i];
+                }
+
+                var allHeaders = comparisons[0].Metadata.Select(kvp => kvp.Key).ToArray();
+                var skipIndexes = new[] { "stdevP1", "stdevP2", "diffP" }.Select(c => allHeaders.IndexOf(c)).ToArray();
+                var fingerHeaders = allHeaders.Skip(skipIndexes).ToArray();
+                var fingerBatch = fingerComparisons.Select(c => fingerHeaders.Zip(c.Metadata.Select(m => m.Value).Skip(skipIndexes)).ToDictionary(f => f.First, f => f.Second.ToString(ComparisonHelper.NumberFormat))).ToList();
+                var fingerPredictions = AzureHelper.InvokeRequestResponseService(fingerBatch, Program.DeepSignFingerApi).Result.ToList();
+                for (int i = 0; i < fingerPredictions.Count; i++)
+                {
+                    fingerComparisons[i].Prediction = fingerPredictions[i];
+                }
             }
 
             ComparisonHelper.SavePredictions(comparisons, predictionsFile);
@@ -187,6 +196,7 @@ namespace SVC2021
 
 
             Debug($"Ready");
+            return trainingFile;
         }
 
         static double GetDifference(double d1, double d2)
